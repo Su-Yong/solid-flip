@@ -22,7 +22,7 @@
     "build": "pnpm clean && pnpm build:only",
     "build:only": "vite build",
     "dev": "vite build --watch",
-    "example": "",
+    "example": "cd examples/basic && pnpm dev",
     "release": "dotenv release-it"
   },
   "keywords": [
