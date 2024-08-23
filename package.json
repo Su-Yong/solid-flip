@@ -1,0 +1,53 @@
+{
+  "name": "@suyongs/solid-flip",
+  "version": "0.1.0",
+  "description": "The most advanced Flip animation library for Solid.js inspired by react-flip-toolkit",
+  "main": "dist/index.umd.js",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
+  "homepage": "https://github.com/Su-Yong/solid-flip",
+  "bugs": "https://github.com/Su-Yong/solid-flip/issues",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "pnpm clean && pnpm build:only",
+    "build:only": "vite build",
+    "dev": "vite build --watch",
+    "example": "",
+    "release": "dotenv release-it"
+  },
+  "keywords": [
+    "solid",
+    "solidjs",
+    "flip",
+    "animation"
+  ],
+  "author": "Su-Yong",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "22.5.0",
+    "release-it": "17.6.0",
+    "rimraf": "6.0.1",
+    "terser": "5.31.6",
+    "typescript": "5.5.4",
+    "vite": "5.4.2",
+    "vite-plugin-dts": "4.0.3",
+    "vite-plugin-solid": "2.10.2"
+  },
+  "peerDependencies": {
+    "solid-js": "*"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}
