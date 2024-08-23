@@ -1,1 +1,1 @@
-export const flip = 'flip';
+export * from './Flip';
