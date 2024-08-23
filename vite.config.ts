@@ -25,7 +25,7 @@ const config = defineConfig({
   },
   plugins: [
     solid(),
-    dts(),
+    dts({ rollupTypes: true }),
   ],
 });
 
