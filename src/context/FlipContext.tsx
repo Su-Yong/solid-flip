@@ -15,20 +15,7 @@ export interface FlipContextProps {
   recordLastState: (id: string, element: Element) => void;
 }
 
-export const FlipContext = createContext<FlipContextProps>({
-  firstState: () => ({}),
-  lastState: () => ({}),
-  getFirstState: () => null,
-  getLastState: () => null,
-  setFirstState: () => {
-  },
-  recordFirstState: () => {
-  },
-  setLastState: () => {
-  },
-  recordLastState: () => {
-  },
-});
+export const FlipContext = createContext<FlipContextProps>();
 
 const { Provider: BaseFlipProvider } = FlipContext;
 

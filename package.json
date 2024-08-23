@@ -1,5 +1,5 @@
 {
-  "name": "@suyongs/solid-flip",
+  "name": "solid-flip",
   "version": "0.1.0",
   "description": "The most advanced Flip animation library for Solid.js inspired by react-flip-toolkit",
   "main": "dist/index.umd.js",

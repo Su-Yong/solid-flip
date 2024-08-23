@@ -19,7 +19,13 @@ export interface NestedFlipProviderProps {
 }
 
 export const NestedFlipProvider = (props: NestedFlipProviderProps) => {
-  const { getFirstState, getLastState } = useContext(FlipContext);
+  const context = useContext(FlipContext);
+  if (!context) {
+    console.warn('Flip must be used inside a FlipProvider');
+    return props.children;
+  }
+
+  const { getFirstState, getLastState } = context;
   const parent = useContext(NestedFlipContext);
 
   const firstParentState = createMemo(() => {

@@ -30,8 +30,15 @@ export interface FlipProps {
 }
 
 export const Flip = (props: FlipProps) => {
-  const { getFirstState, setLastState, recordFirstState } = useContext(FlipContext);
+  const context = useContext(FlipContext);
   const nested = useContext(NestedFlipContext);
+
+  if (!context) {
+    console.warn('Flip must be used inside a FlipProvider');
+    return props.children;
+  }
+
+  const { getFirstState, setLastState, recordFirstState } = context;
 
   const [animationProps, triggerProps, local] = splitProps(
     mergeProps({
