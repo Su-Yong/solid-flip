@@ -1,6 +1,48 @@
 #root {
+  position: relative;
+
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
+}
+
+.app {
+  max-width: 1200px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+
+  margin: 0 auto;
+  padding: 64px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.red {
+  background-color: red;
+}
+
+.blue {
+  background-color: blue;
+}
+
+.fullscreen {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
 }
