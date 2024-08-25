@@ -23,7 +23,7 @@
     "build:only": "vite build",
     "dev": "vite build --watch",
     "example": "cd examples/basic && pnpm dev",
-    "release": "dotenv release-it"
+    "release": "release-it"
   },
   "keywords": [
     "solid",
