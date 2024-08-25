@@ -1,7 +1,9 @@
 import { Accessor, createContext, createSignal } from 'solid-js';
 
-import type { JSX } from 'solid-js/jsx-runtime';
 import { captureState, DOMState } from '../state';
+
+import type { JSX } from 'solid-js/jsx-runtime';
+import type { CSSStyleKeys } from '../types';
 
 export interface FlipContextProps {
   firstState: Accessor<Record<string, DOMState | null>>;
@@ -10,9 +12,9 @@ export interface FlipContextProps {
   getLastState: (id: string) => DOMState | null;
 
   setFirstState: (id: string, state: DOMState | null) => void;
-  recordFirstState: (id: string, element: Element) => void;
+  recordFirstState: (id: string, element: Element, properties?: CSSStyleKeys[]) => void;
   setLastState: (id: string, state: DOMState | null) => void;
-  recordLastState: (id: string, element: Element) => void;
+  recordLastState: (id: string, element: Element, properties?: CSSStyleKeys[]) => void;
 }
 
 export const FlipContext = createContext<FlipContextProps>();
@@ -38,8 +40,8 @@ export const FlipProvider = (props: FlipProviderProps) => {
         setFirstState: (id, newState) => {
           setFirstState((prev) => ({ ...prev, [id]: newState }));
         },
-        recordFirstState: (id, element) => {
-          const newState = captureState(element);
+        recordFirstState: (id, element, properties = []) => {
+          const newState = captureState(element, properties);
           if (newState.rect.width === 0 && newState.rect.height === 0) return;
 
           setFirstState((prev) => ({
@@ -50,8 +52,8 @@ export const FlipProvider = (props: FlipProviderProps) => {
         setLastState: (id, newState) => {
           setLastState((prev) => ({ ...prev, [id]: newState }));
         },
-        recordLastState: (id, element) => {
-          const newState = captureState(element);
+        recordLastState: (id, element, properties = []) => {
+          const newState = captureState(element, properties);
           if (newState.rect.width === 0 && newState.rect.height === 0) return;
 
           setLastState((prev) => ({

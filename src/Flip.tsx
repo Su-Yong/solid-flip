@@ -16,6 +16,9 @@ import { captureState } from './state';
 import { FlipContext, NestedFlipContext, NestedFlipProvider } from './context';
 
 import type { JSX } from 'solid-js/jsx-runtime';
+import type { CSSStyleKeys } from './types';
+
+type ArrayOr<T> = T | T[];
 
 export interface FlipProps {
   id: string;
@@ -23,9 +26,10 @@ export interface FlipProps {
   /* animation props */
   duration?: number;
   easing?: string;
+  properties?: ArrayOr<CSSStyleKeys>;
 
   /* trigger */
-  with?: unknown[] | unknown;
+  with?: ArrayOr<unknown>;
 
   children: JSX.Element;
 }
@@ -47,7 +51,7 @@ export const Flip = (props: FlipProps) => {
       easing: 'ease-in-out',
       with: [],
     }, props),
-    ['duration', 'easing'],
+    ['duration', 'easing', 'properties'],
     ['with'],
   );
 
@@ -57,6 +61,13 @@ export const Flip = (props: FlipProps) => {
     const value = triggerProps.with;
 
     return Array.isArray(value) ? value : [value];
+  });
+  const properties = createMemo(() => {
+    const value = animationProps.properties;
+
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    return [value];
   });
 
   let result: JSX.Element | null = null;
@@ -71,7 +82,7 @@ export const Flip = (props: FlipProps) => {
     if (firstState) {
       animation?.cancel();
       animation = null;
-      const afterState = captureState(result);
+      const afterState = captureState(result, properties());
       setLastState(local.id, afterState);
 
       requestAnimationFrame(() => {
@@ -104,20 +115,35 @@ export const Flip = (props: FlipProps) => {
         const deltaWidth = (firstState.rect.width / afterState.rect.width) / parentDeltaWidth;
         const deltaHeight = (firstState.rect.height / afterState.rect.height) / parentDeltaHeight;
 
-        const unflipStates = unflips().map(captureState);
-        animation = result.animate([
+        const unflipStates = unflips().map((it) => captureState(it, properties()));
+
+        const startKeyframe: Keyframe = {
+          transformOrigin: '50% 50%',
+          translate: `${deltaX}px ${deltaY}px`,
+          scale: `${deltaWidth} ${deltaHeight}`,
+          backgroundColor: firstState.color,
+          opacity: firstState.opacity,
+        };
+        if (animationProps.properties) {
+          const properties = Array.isArray(animationProps.properties)
+            ? animationProps.properties
+            : [animationProps.properties];
+
+          properties.forEach((property) => {
+            const value = firstState.additionalProperties?.[property];
+
+            if (value) startKeyframe[property as string] = value as string;
+            else console.warn(`Property "${property}" is not found in the first state`);
+          });
+        }
+
+        animation = result.animate(
+          [startKeyframe, {}],
           {
-            transformOrigin: '50% 50%',
-            translate: `${deltaX}px ${deltaY}px`,
-            scale: `${deltaWidth} ${deltaHeight}`,
-            backgroundColor: firstState.color,
-            opacity: firstState.opacity,
+            duration: animationProps.duration,
+            easing: animationProps.easing,
           },
-          {}
-        ], {
-          duration: animationProps.duration,
-          easing: animationProps.easing,
-        });
+        );
         unflips().forEach((unflip, index) => {
           const firstUnflipState = unflipStates[index];
           const x = firstUnflipState.rect.left - afterState.rect.left;
@@ -148,7 +174,7 @@ export const Flip = (props: FlipProps) => {
 
       });
     } else {
-      recordFirstState(local.id, result);
+      recordFirstState(local.id, result, properties());
     }
   };
 
@@ -174,7 +200,7 @@ export const Flip = (props: FlipProps) => {
       return;
     }
 
-    recordFirstState(local.id, result);
+    recordFirstState(local.id, result, properties());
   }, { defer: true }));
 
   createEffect(on(triggerWith, () => {
@@ -187,7 +213,7 @@ export const Flip = (props: FlipProps) => {
       return;
     }
 
-    recordFirstState(local.id, result);
+    recordFirstState(local.id, result, properties());
   });
 
   return (
