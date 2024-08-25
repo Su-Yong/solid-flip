@@ -123,6 +123,10 @@ export const Flip = (props: FlipProps) => {
           scale: `${deltaWidth} ${deltaHeight}`,
           backgroundColor: firstState.color,
           opacity: firstState.opacity,
+          borderTopLeftRadius: `${firstState.borderTopLeftXRadius / deltaWidth}px ${firstState.borderTopLeftYRadius / deltaHeight}px`,
+          borderTopRightRadius: `${firstState.borderTopRightXRadius / deltaWidth}px ${firstState.borderTopRightYRadius / deltaHeight}px`,
+          borderBottomLeftRadius: `${firstState.borderBottomLeftXRadius / deltaWidth}px ${firstState.borderBottomLeftYRadius / deltaHeight}px`,
+          borderBottomRightRadius: `${firstState.borderBottomRightXRadius / deltaWidth}px ${firstState.borderBottomRightYRadius / deltaHeight}px`,
         };
         if (animationProps.properties) {
           const properties = Array.isArray(animationProps.properties)
