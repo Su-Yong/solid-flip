@@ -142,7 +142,6 @@ export const App = () => {
         </div>
       </section>
 
-
       <section>
         <h1>Unflip</h1>
         <div class={'header'}>
