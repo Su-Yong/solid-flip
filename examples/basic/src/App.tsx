@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from 'solid-js';
 
-import { Flip } from '../../../';
+import { Flip, Unflip } from '../../../';
 
 import './App.css';
 
@@ -25,11 +25,14 @@ export const App = () => {
     { id: 5, items: [21, 22, 23, 24, 25] },
     { id: 6, items: [26, 27, 28, 29, 30] },
   ]);
+  const [flip7, setFlip7] = createSignal(1);
 
   const onRemove5 = () => setFlip5((prev) => prev.sort((a, b) => a - b).slice(0, prev.length - 1));
   const onShuffle5 = () => setFlip5(shuffle(flip5()));
   const onAdd5 = () => setFlip5((prev) => [...prev, prev.length + 1]);
   const onShuffle6 = () => setFlip6(shuffle(flip6().map((group) => ({ ...group, items: shuffle(group.items) }))));
+  const onRemove7 = () => setFlip7((prev) => Math.max(1, prev - 1));
+  const onAdd7 = () => setFlip7((prev) => Math.min(3, prev + 1));
 
   return (
     <div class={'app'}>
@@ -52,6 +55,7 @@ export const App = () => {
           </Flip>
         </Show>
       </section>
+
       <section>
         <h1>Flip with <code>Property(with)</code></h1>
         <Flip id={'flip2'} with={flip2()}>
@@ -60,6 +64,7 @@ export const App = () => {
           </div>
         </Flip>
       </section>
+
       <section>
         <h1>Flip with <code>Multiple Property(with)</code></h1>
         <div class={'header'}>
@@ -82,6 +87,7 @@ export const App = () => {
           </div>
         </Flip>
       </section>
+
       <section>
         <h1>Flip + <code>For</code></h1>
         <div class={'header'}>
@@ -107,6 +113,7 @@ export const App = () => {
           </For>
         </div>
       </section>
+
       <section>
         <h1>Nested Flip</h1>
         <div class={'header'}>
@@ -133,6 +140,42 @@ export const App = () => {
             )}
           </For>
         </div>
+      </section>
+
+
+      <section>
+        <h1>Unflip</h1>
+        <div class={'header'}>
+          <button onClick={onRemove7}>
+            -
+          </button>
+          {flip7()}
+          <button onClick={onAdd7}>
+            +
+          </button>
+        </div>
+
+        <Flip id={'flip7'} with={flip7()}>
+          <div
+            class={'card'}
+            style={{
+              width: flip7() === 2 ? '500px' : '250px',
+              height: flip7() === 3 ? '500px' : '250px'
+            }}
+          >
+            <Unflip>
+              <div>
+                <div class={'card red'}>
+                  Inner Component 1
+                </div>
+                <div class={'card blue'}>
+                  Inner Component 2
+                </div>
+              </div>
+            </Unflip>
+          </div>
+        </Flip>
+
       </section>
     </div>
   );

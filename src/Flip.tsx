@@ -2,6 +2,7 @@ import {
   createComputed,
   createEffect,
   createMemo,
+  createSignal,
   mergeProps,
   on,
   onCleanup,
@@ -50,6 +51,8 @@ export const Flip = (props: FlipProps) => {
     ['with'],
   );
 
+  const [unflips, setUnflips] = createSignal<Element[]>([]);
+
   const triggerWith = createMemo(() => {
     const value = triggerProps.with;
 
@@ -67,6 +70,7 @@ export const Flip = (props: FlipProps) => {
     const firstState = getFirstState(local.id);
     if (firstState) {
       animation?.cancel();
+      animation = null;
       const afterState = captureState(result);
       setLastState(local.id, afterState);
 
@@ -95,16 +99,17 @@ export const Flip = (props: FlipProps) => {
         const offsetX = (firstState.rect.width - afterState.rect.width) / 2;
         const offsetY = (firstState.rect.height - afterState.rect.height) / 2;
 
-        let deltaX = -1 * parentDeltaX + firstState.rect.left - afterState.rect.left + offsetX;
-        let deltaY = -1 * parentDeltaY + firstState.rect.top - afterState.rect.top + offsetY;
+        const deltaX = -1 * parentDeltaX + firstState.rect.left - afterState.rect.left + offsetX;
+        const deltaY = -1 * parentDeltaY + firstState.rect.top - afterState.rect.top + offsetY;
         const deltaWidth = (firstState.rect.width / afterState.rect.width) / parentDeltaWidth;
         const deltaHeight = (firstState.rect.height / afterState.rect.height) / parentDeltaHeight;
 
-
+        const unflipStates = unflips().map(captureState);
         animation = result.animate([
           {
             transformOrigin: '50% 50%',
-            transform: `translate(${deltaX}px, ${deltaY}px) scale(${deltaWidth}, ${deltaHeight})`,
+            translate: `${deltaX}px ${deltaY}px`,
+            scale: `${deltaWidth} ${deltaHeight}`,
             backgroundColor: firstState.color,
             opacity: firstState.opacity,
           },
@@ -113,6 +118,34 @@ export const Flip = (props: FlipProps) => {
           duration: animationProps.duration,
           easing: animationProps.easing,
         });
+        unflips().forEach((unflip, index) => {
+          const firstUnflipState = unflipStates[index];
+          const x = firstUnflipState.rect.left - afterState.rect.left;
+          const y = firstUnflipState.rect.top - afterState.rect.top;
+
+          const animate = () => {
+            const target = unflip as HTMLElement;
+            const [parentScaleX, parentScaleY] = getComputedStyle(result as Element).scale.split(' ').map(Number);
+
+            if (!Number.isFinite(parentScaleX) || !Number.isFinite(parentScaleY)) {
+              target.style.removeProperty('scale');
+              target.style.removeProperty('translate');
+              return;
+            }
+
+            const scaleX = 1 / parentScaleX;
+            const scaleY = 1 / parentScaleY;
+            const offsetX = firstUnflipState.rect.width * (scaleX - 1) / 2 + x * (scaleX - 1);
+            const offsetY = firstUnflipState.rect.height * (scaleY - 1) / 2 + y * (scaleY - 1);
+
+            target.style.setProperty('translate', `${offsetX}px ${offsetY}px`);
+            target.style.setProperty('scale', `${scaleX} ${scaleY}`);
+
+            requestAnimationFrame(animate);
+          };
+          animate();
+        });
+
       });
     } else {
       recordFirstState(local.id, result);
@@ -160,6 +193,8 @@ export const Flip = (props: FlipProps) => {
   return (
     <NestedFlipProvider
       id={local.id}
+      unflips={unflips()}
+      setUnflips={setUnflips}
     >
       {result = props.children}
     </NestedFlipProvider>

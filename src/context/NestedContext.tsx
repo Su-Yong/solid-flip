@@ -9,6 +9,8 @@ export interface NestedFlipContextProps {
   parentId: Accessor<string>;
   firstParentState: Accessor<DOMState | null>;
   lastParentState: Accessor<DOMState | null>;
+  unflips: Accessor<Element[]>;
+  setUnflips: (unflips: Element[]) => void;
 }
 
 export const NestedFlipContext = createContext<NestedFlipContextProps>();
@@ -16,6 +18,8 @@ export const NestedFlipContext = createContext<NestedFlipContextProps>();
 export interface NestedFlipProviderProps {
   id: string;
   children: JSX.Element;
+  unflips: Element[];
+  setUnflips: (unflips: Element[]) => void;
 }
 
 export const NestedFlipProvider = (props: NestedFlipProviderProps) => {
@@ -67,6 +71,8 @@ export const NestedFlipProvider = (props: NestedFlipProviderProps) => {
         parentId: () => props.id,
         firstParentState,
         lastParentState,
+        unflips: () => props.unflips,
+        setUnflips: props.setUnflips,
       }}
     >
       {props.children}
