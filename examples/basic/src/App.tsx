@@ -57,10 +57,14 @@ export const App = () => {
       </section>
 
       <section>
-        <h1>Flip with <code>Property(with)</code></h1>
+        <h1>Flip with <code>Property(with)</code> + Unflip</h1>
         <Flip id={'flip2'} with={flip2()}>
           <div class={flip2() ? 'card blue fullscreen' : 'card red'} onClick={() => setFlip2(!flip2())}>
-            {flip2() ? 'Click Again!' : 'Click!'}
+            <Unflip>
+              <div>
+                {flip2() ? 'Click Again!' : 'Click!'}
+              </div>
+            </Unflip>
           </div>
         </Flip>
       </section>

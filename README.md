@@ -63,7 +63,7 @@ npm install solid-flip
    
     const [show, setShow] = createSignal(false);
    
-    <Flip id={'my-flip-id'} with={show()}> // set `with` property that will be used to determine whether the content should be animated
+    <Flip id={'my-flip-id'} with={show()}> // set `with` property that will be used to determine when the content should be animated
       <div class={show() ? 'show' : 'hidden'}>Animated content</div>
     </Flip>
     ```
@@ -132,9 +132,25 @@ https://github.com/user-attachments/assets/0547a512-7032-4cce-940f-512de78538ef
 </div>
 ```
 
-# Usage
+# API
+## FlipProvider
+`FlipProvider` component is used to wrap the root component of your application. It provides the context for the flip animation.
+If you don't wrap your root component with `FlipProvider`, the flip animation will not work.
+
 ## Flip
-> TODO
+`Flip` component is used to wrap the content that you want to animate. It directly passes children.
+
+| Property   | Type                   | Default      | Description                                                    |
+|------------|------------------------|--------------|----------------------------------------------------------------|
+| id         | `string`               | _(required)_ | The unique id of the flip component                            |
+| with       | `unknown \| unknown[]` | []           | The condition to determine when the content should be animated |
+| duration   | `number`               | 300          | The duration of the animation                                  |
+| easing     | `string`               | 'ease'       | The easing of the animation                                    |
+| properties | `string \| string[]`   | []           | The additional properties that will be animated                |
 
 ## Unflip
-> TODO
+`Unflip` component is used to warp the content that ignore parent flip animation. It directly passes children.
+
+| Property | Type     | Default | Description                            |
+|----------|----------|---------|----------------------------------------|
+| id       | `string` | -       | A parent id that ignore flip animation |
