@@ -9,7 +9,8 @@
 - 📦 Support scale animation without children
 
 ## Roadmap
-- [ ] add `onAppear`, `onExit` properties in `Flip`
+- [X] add `enter`, `exit` properties in `Flip`
+- [ ] add `onEnter`, `onExit` properties in `Flip`
 - [ ] spring-based animation config
 - [ ] physics-based animation config
 
@@ -145,13 +146,15 @@ If you don't wrap your root component with `FlipProvider`, the flip animation wi
 ## Flip
 `Flip` component is used to wrap the content that you want to animate. It directly passes children.
 
-| Property   | Type                   | Default      | Description                                                    |
-|------------|------------------------|--------------|----------------------------------------------------------------|
-| id         | `string`               | _(required)_ | The unique id of the flip component                            |
-| with       | `unknown \| unknown[]` | []           | The condition to determine when the content should be animated |
-| duration   | `number`               | 300          | The duration of the animation                                  |
-| easing     | `string`               | 'ease'       | The easing of the animation                                    |
-| properties | `string \| string[]`   | []           | The additional properties that will be animated                |
+| Property   | Type                   | Default      | Description                                                                                                                                                                                                                      |
+|------------|------------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| id*        | `string`               | _(required)_ | The unique id of the flip component                                                                                                                                                                                              |
+| with       | `unknown \| unknown[]` | []           | The condition to determine when the content should be animated                                                                                                                                                                   |
+| duration   | `number`               | 300          | The duration of the animation                                                                                                                                                                                                    |
+| easing     | `string`               | 'ease'       | The easing of the animation                                                                                                                                                                                                      |
+| properties | `string \| string[]`   | []           | The additional properties that will be animated                                                                                                                                                                                  |
+| enter      | `string \| boolean`    | false        | If this value is truthy, The element will be animate when the element is inserted. The value means the initial class name of the element. If you set this value as `true`, entering class name will be set as `enter`            |
+| exit       | `string \| boolean`    | false        | If this value is truthy, The element will be animate when the element is removed. The value means the class name of the element after element removed. If you set this value as `true`, exiting class name will be set as `exit` |
 
 ## Unflip
 `Unflip` component is used to warp the content that ignore parent flip animation. It directly passes children.
