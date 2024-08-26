@@ -108,7 +108,11 @@ export const App = () => {
         <div class={'grid'}>
           <For each={flip5()}>
             {(item) => (
-              <Flip id={`flip5-${item}`} with={flip5()}>
+              <Flip
+                enter
+                id={`flip5-${item}`}
+                with={flip5()}
+              >
                 <div class={'card'}>
                   {item}
                 </div>
