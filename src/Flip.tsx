@@ -15,7 +15,7 @@ import {
 } from 'solid-js';
 import { isDev } from 'solid-js/web';
 
-import { captureState } from './state';
+import { captureState, DOMState } from './state';
 import { FlipContext, NestedFlipContext, NestedFlipProvider } from './context';
 
 import type { JSX } from 'solid-js/jsx-runtime';
@@ -50,13 +50,19 @@ export const Flip = (props: FlipProps) => {
 
   const { attachedFlipIds, getFirstState, setFirstState, setLastState, recordFirstState, detach, attach } = context;
 
-  const [animationProps, triggerProps, local] = splitProps(
+  const [
+    animationProps,
+    timingProps,
+    triggerProps,
+    local,
+  ] = splitProps(
     mergeProps({
       duration: 300,
       easing: 'ease-in-out',
       with: [],
     }, props),
-    ['duration', 'easing', 'properties', 'enter', 'exit'],
+    ['duration', 'easing', 'properties'],
+    ['enter', 'exit'],
     ['with'],
   );
 
@@ -75,12 +81,122 @@ export const Flip = (props: FlipProps) => {
     return [value];
   });
   const enterClass = createMemo(() => {
-    const value = animationProps.enter;
+    const value = timingProps.enter;
 
     if (typeof value === 'string') return value;
     if (value === true) return 'enter';
     return null;
   });
+  const exitClass = createMemo(() => {
+    const value = timingProps.exit;
+
+    if (typeof value === 'string') return value;
+    if (value === true) return 'exit';
+    return null;
+  });
+
+  const animate = (firstState: DOMState, lastState: DOMState) => {
+    if (!(result instanceof Element)) {
+      console.warn('Flip children must be a single DOM node');
+      return;
+    }
+
+    const firstParentState = nested?.firstParentState();
+    const lastParentState = nested?.lastParentState();
+
+    let parentDeltaX = 0;
+    let parentDeltaY = 0;
+    let parentDeltaWidth = 1;
+    let parentDeltaHeight = 1;
+    if (lastParentState && firstParentState) {
+      const parentOffsetX = (firstParentState.rect.width - lastParentState.rect.width) / 2;
+      const parentOffsetY = (firstParentState.rect.height - lastParentState.rect.height) / 2;
+      parentDeltaX = firstParentState.rect.left - lastParentState.rect.left + parentOffsetX;
+      parentDeltaY = firstParentState.rect.top - lastParentState.rect.top + parentOffsetY;
+      parentDeltaWidth = firstParentState.rect.width / lastParentState.rect.width;
+      parentDeltaHeight = firstParentState.rect.height / lastParentState.rect.height;
+    }
+
+    const offsetX = (firstState.rect.width - lastState.rect.width) / 2;
+    const offsetY = (firstState.rect.height - lastState.rect.height) / 2;
+
+    const deltaX = -1 * parentDeltaX + firstState.rect.left - lastState.rect.left + offsetX;
+    const deltaY = -1 * parentDeltaY + firstState.rect.top - lastState.rect.top + offsetY;
+    const deltaWidth = (firstState.rect.width / lastState.rect.width) / parentDeltaWidth;
+    const deltaHeight = (firstState.rect.height / lastState.rect.height) / parentDeltaHeight;
+    const safeDeltaWidth = deltaWidth === 0 ? 1 : deltaWidth;
+    const safeDeltaHeight = deltaHeight === 0 ? 1 : deltaHeight;
+
+    const unflipStates = unflips().map((it) => captureState(it, properties()));
+
+    const startKeyframe: Keyframe = {
+      transformOrigin: '50% 50%',
+      translate: `${deltaX}px ${deltaY}px`,
+      scale: `${deltaWidth} ${deltaHeight}`,
+      backgroundColor: firstState.color,
+      opacity: firstState.opacity,
+      borderTopLeftRadius: `${firstState.borderTopLeftXRadius / safeDeltaWidth}px ${firstState.borderTopLeftYRadius / safeDeltaHeight}px`,
+      borderTopRightRadius: `${firstState.borderTopRightXRadius / safeDeltaWidth}px ${firstState.borderTopRightYRadius / safeDeltaHeight}px`,
+      borderBottomLeftRadius: `${firstState.borderBottomLeftXRadius / safeDeltaWidth}px ${firstState.borderBottomLeftYRadius / safeDeltaHeight}px`,
+      borderBottomRightRadius: `${firstState.borderBottomRightXRadius / safeDeltaWidth}px ${firstState.borderBottomRightYRadius / safeDeltaHeight}px`,
+    };
+    if (animationProps.properties) {
+      const properties = Array.isArray(animationProps.properties)
+        ? animationProps.properties
+        : [animationProps.properties];
+
+      properties.forEach((property) => {
+        const value = firstState.additionalProperties?.[property];
+
+        if (value) startKeyframe[property as string] = value as string;
+        else console.warn(`Property "${property}" is not found in the first state`);
+      });
+    }
+
+    animation = result.animate(
+      [startKeyframe, {}],
+      {
+        duration: animationProps.duration,
+        easing: animationProps.easing,
+      },
+    );
+    const animateUnflips = unflips().map((unflip, index) => {
+      const firstUnflipState = unflipStates[index];
+      const x = firstUnflipState.rect.left - lastState.rect.left;
+      const y = firstUnflipState.rect.top - lastState.rect.top;
+
+      return () => {
+        const target = unflip as HTMLElement;
+        const [parentScaleX, parentScaleY] = getComputedStyle(result as Element).scale.split(' ').map(Number);
+
+        if (!Number.isFinite(parentScaleX) || !Number.isFinite(parentScaleY)) {
+          target.style.removeProperty('scale');
+          target.style.removeProperty('translate');
+          return true;
+        }
+
+        const scaleX = 1 / parentScaleX;
+        const scaleY = 1 / parentScaleY;
+        const offsetX = firstUnflipState.rect.width * (scaleX - 1) / 2 + x * (scaleX - 1);
+        const offsetY = firstUnflipState.rect.height * (scaleY - 1) / 2 + y * (scaleY - 1);
+
+        target.style.setProperty('translate', `${offsetX}px ${offsetY}px`);
+        target.style.setProperty('scale', `${scaleX} ${scaleY}`);
+
+        return false;
+      };
+    });
+
+    const animateAll = () => {
+      const isEnd = animateUnflips.map((it) => it());
+      if (isEnd.every(Boolean)) return;
+
+      requestAnimationFrame(animateAll);
+    };
+    animateAll();
+
+    return animation;
+  };
 
   let result: JSX.Element | null = null;
   let animation: Animation | null = null;
@@ -103,102 +219,11 @@ export const Flip = (props: FlipProps) => {
     if (firstState) {
       animation?.cancel();
       animation = null;
-      const afterState = captureState(result, properties());
-      setLastState(local.id, afterState);
+      const lastState = captureState(result, properties());
+      setLastState(local.id, lastState);
 
       requestAnimationFrame(() => {
-        if (!(result instanceof Element)) {
-          console.warn('Flip children must be a single DOM node');
-          return;
-        }
-
-        const firstParentState = nested?.firstParentState();
-        const lastParentState = nested?.lastParentState();
-
-        let parentDeltaX = 0;
-        let parentDeltaY = 0;
-        let parentDeltaWidth = 1;
-        let parentDeltaHeight = 1;
-        if (lastParentState && firstParentState) {
-          const parentOffsetX = (firstParentState.rect.width - lastParentState.rect.width) / 2;
-          const parentOffsetY = (firstParentState.rect.height - lastParentState.rect.height) / 2;
-          parentDeltaX = firstParentState.rect.left - lastParentState.rect.left + parentOffsetX;
-          parentDeltaY = firstParentState.rect.top - lastParentState.rect.top + parentOffsetY;
-          parentDeltaWidth = firstParentState.rect.width / lastParentState.rect.width;
-          parentDeltaHeight = firstParentState.rect.height / lastParentState.rect.height;
-        }
-
-        const offsetX = (firstState.rect.width - afterState.rect.width) / 2;
-        const offsetY = (firstState.rect.height - afterState.rect.height) / 2;
-
-        const deltaX = -1 * parentDeltaX + firstState.rect.left - afterState.rect.left + offsetX;
-        const deltaY = -1 * parentDeltaY + firstState.rect.top - afterState.rect.top + offsetY;
-        const deltaWidth = (firstState.rect.width / afterState.rect.width) / parentDeltaWidth;
-        const deltaHeight = (firstState.rect.height / afterState.rect.height) / parentDeltaHeight;
-        const safeDeltaWidth = deltaWidth === 0 ? 1 : deltaWidth;
-        const safeDeltaHeight = deltaHeight === 0 ? 1 : deltaHeight;
-
-        const unflipStates = unflips().map((it) => captureState(it, properties()));
-
-        const startKeyframe: Keyframe = {
-          transformOrigin: '50% 50%',
-          translate: `${deltaX}px ${deltaY}px`,
-          scale: `${deltaWidth} ${deltaHeight}`,
-          backgroundColor: firstState.color,
-          opacity: firstState.opacity,
-          borderTopLeftRadius: `${firstState.borderTopLeftXRadius / safeDeltaWidth}px ${firstState.borderTopLeftYRadius / safeDeltaHeight}px`,
-          borderTopRightRadius: `${firstState.borderTopRightXRadius / safeDeltaWidth}px ${firstState.borderTopRightYRadius / safeDeltaHeight}px`,
-          borderBottomLeftRadius: `${firstState.borderBottomLeftXRadius / safeDeltaWidth}px ${firstState.borderBottomLeftYRadius / safeDeltaHeight}px`,
-          borderBottomRightRadius: `${firstState.borderBottomRightXRadius / safeDeltaWidth}px ${firstState.borderBottomRightYRadius / safeDeltaHeight}px`,
-        };
-        if (animationProps.properties) {
-          const properties = Array.isArray(animationProps.properties)
-            ? animationProps.properties
-            : [animationProps.properties];
-
-          properties.forEach((property) => {
-            const value = firstState.additionalProperties?.[property];
-
-            if (value) startKeyframe[property as string] = value as string;
-            else console.warn(`Property "${property}" is not found in the first state`);
-          });
-        }
-
-        animation = result.animate(
-          [startKeyframe, {}],
-          {
-            duration: animationProps.duration,
-            easing: animationProps.easing,
-          },
-        );
-        unflips().forEach((unflip, index) => {
-          const firstUnflipState = unflipStates[index];
-          const x = firstUnflipState.rect.left - afterState.rect.left;
-          const y = firstUnflipState.rect.top - afterState.rect.top;
-
-          const animate = () => {
-            const target = unflip as HTMLElement;
-            const [parentScaleX, parentScaleY] = getComputedStyle(result as Element).scale.split(' ').map(Number);
-
-            if (!Number.isFinite(parentScaleX) || !Number.isFinite(parentScaleY)) {
-              target.style.removeProperty('scale');
-              target.style.removeProperty('translate');
-              return;
-            }
-
-            const scaleX = 1 / parentScaleX;
-            const scaleY = 1 / parentScaleY;
-            const offsetX = firstUnflipState.rect.width * (scaleX - 1) / 2 + x * (scaleX - 1);
-            const offsetY = firstUnflipState.rect.height * (scaleY - 1) / 2 + y * (scaleY - 1);
-
-            target.style.setProperty('translate', `${offsetX}px ${offsetY}px`);
-            target.style.setProperty('scale', `${scaleX} ${scaleY}`);
-
-            requestAnimationFrame(animate);
-          };
-          animate();
-        });
-
+        animate(firstState, lastState);
       });
     } else {
       recordFirstState(local.id, result, properties());
@@ -245,18 +270,37 @@ export const Flip = (props: FlipProps) => {
     }
 
     detach(local.id);
-    recordFirstState(local.id, result, properties());
+    const newState = captureState(result, properties());
+    setFirstState(local.id, newState);
 
     const owner = getOwner();
+    const exitClassName = exitClass();
     const id = local.id;
-    setTimeout(() => { // HACK: nextTick
+    const parentElement = result.parentElement;
+
+    queueMicrotask(() => {
+      runWithOwner(owner, () => {
+        if (exitClassName && parentElement) {
+          if (!(result instanceof HTMLElement) && !(result instanceof SVGElement)) return;
+
+          result.classList.add(exitClassName);
+          parentElement.append(result);
+          const lastState = captureState(result, properties());
+          animate(newState, lastState)?.addEventListener('finish', () => {
+            (result as Element).remove();
+          });
+        }
+      });
+    });
+
+    setTimeout(() => { // HACK: nextFrame
       runWithOwner(owner, () => {
         const ids = attachedFlipIds();
         if (ids.has(id)) return;
 
         setFirstState(id, null);
       });
-    }, 0);
+    }, 16);
   });
 
   return (
