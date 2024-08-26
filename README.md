@@ -8,6 +8,11 @@
 - ✅ Support nested flip
 - 📦 Support scale animation without children
 
+## Roadmap
+- [ ] add `onAppear`, `onExit` properties in `Flip`
+- [ ] spring-based animation config
+- [ ] physics-based animation config
+
 # Installation
 ```bash
 pnpm add solid-flip
@@ -74,7 +79,7 @@ Please check the [example](./example) folder or [codesandbox](https://codesandbo
 
 ## Flip
 
-https://github.com/user-attachments/assets/69367673-8edc-4c7d-816c-59a15743b05d
+<video width="100%" height="auto" src="https://github.com/user-attachments/assets/69367673-8edc-4c7d-816c-59a15743b05d"></video>
 
 ```tsx
 <Flip id={'flip2'} with={flip2()}>
@@ -90,7 +95,7 @@ https://github.com/user-attachments/assets/69367673-8edc-4c7d-816c-59a15743b05d
 
 ## Flip + For
 
-https://github.com/user-attachments/assets/a6b4f260-f76a-4ce6-b5a9-448697607a3b
+<video width="100%" height="auto" src="https://github.com/user-attachments/assets/a6b4f260-f76a-4ce6-b5a9-448697607a3b"></video>
 
 ```tsx
 <div class={'grid'}>
@@ -108,7 +113,7 @@ https://github.com/user-attachments/assets/a6b4f260-f76a-4ce6-b5a9-448697607a3b
 
 ## Nested Flip
 
-https://github.com/user-attachments/assets/0547a512-7032-4cce-940f-512de78538ef
+<video width="100%" height="auto" src="https://github.com/user-attachments/assets/0547a512-7032-4cce-940f-512de78538ef"></video>
 
 ```tsx
 <div class={'grid'}>
