@@ -2,11 +2,14 @@ import {
   createComputed,
   createEffect,
   createMemo,
+  createRenderEffect,
   createSignal,
+  getOwner,
   mergeProps,
   on,
   onCleanup,
   onMount,
+  runWithOwner,
   splitProps,
   useContext
 } from 'solid-js';
@@ -27,6 +30,8 @@ export interface FlipProps {
   duration?: number;
   easing?: string;
   properties?: ArrayOr<CSSStyleKeys>;
+  enter?: string | boolean;
+  exit?: string | boolean;
 
   /* trigger */
   with?: ArrayOr<unknown>;
@@ -43,7 +48,7 @@ export const Flip = (props: FlipProps) => {
     return props.children;
   }
 
-  const { getFirstState, setLastState, recordFirstState } = context;
+  const { attachedFlipIds, getFirstState, setFirstState, setLastState, recordFirstState, detach, attach } = context;
 
   const [animationProps, triggerProps, local] = splitProps(
     mergeProps({
@@ -51,7 +56,7 @@ export const Flip = (props: FlipProps) => {
       easing: 'ease-in-out',
       with: [],
     }, props),
-    ['duration', 'easing', 'properties'],
+    ['duration', 'easing', 'properties', 'enter', 'exit'],
     ['with'],
   );
 
@@ -69,6 +74,13 @@ export const Flip = (props: FlipProps) => {
     if (Array.isArray(value)) return value;
     return [value];
   });
+  const enterClass = createMemo(() => {
+    const value = animationProps.enter;
+
+    if (typeof value === 'string') return value;
+    if (value === true) return 'enter';
+    return null;
+  });
 
   let result: JSX.Element | null = null;
   let animation: Animation | null = null;
@@ -78,7 +90,16 @@ export const Flip = (props: FlipProps) => {
       return;
     }
 
-    const firstState = getFirstState(local.id);
+    const enterClassName = enterClass();
+    let firstState = getFirstState(local.id);
+    if (!firstState && enterClassName) {
+      result.classList.add(enterClassName);
+      firstState = captureState(result, properties());
+      result.classList.remove(enterClassName);
+
+      setFirstState(local.id, firstState);
+    }
+
     if (firstState) {
       animation?.cancel();
       animation = null;
@@ -114,6 +135,8 @@ export const Flip = (props: FlipProps) => {
         const deltaY = -1 * parentDeltaY + firstState.rect.top - afterState.rect.top + offsetY;
         const deltaWidth = (firstState.rect.width / afterState.rect.width) / parentDeltaWidth;
         const deltaHeight = (firstState.rect.height / afterState.rect.height) / parentDeltaHeight;
+        const safeDeltaWidth = deltaWidth === 0 ? 1 : deltaWidth;
+        const safeDeltaHeight = deltaHeight === 0 ? 1 : deltaHeight;
 
         const unflipStates = unflips().map((it) => captureState(it, properties()));
 
@@ -123,10 +146,10 @@ export const Flip = (props: FlipProps) => {
           scale: `${deltaWidth} ${deltaHeight}`,
           backgroundColor: firstState.color,
           opacity: firstState.opacity,
-          borderTopLeftRadius: `${firstState.borderTopLeftXRadius / deltaWidth}px ${firstState.borderTopLeftYRadius / deltaHeight}px`,
-          borderTopRightRadius: `${firstState.borderTopRightXRadius / deltaWidth}px ${firstState.borderTopRightYRadius / deltaHeight}px`,
-          borderBottomLeftRadius: `${firstState.borderBottomLeftXRadius / deltaWidth}px ${firstState.borderBottomLeftYRadius / deltaHeight}px`,
-          borderBottomRightRadius: `${firstState.borderBottomRightXRadius / deltaWidth}px ${firstState.borderBottomRightYRadius / deltaHeight}px`,
+          borderTopLeftRadius: `${firstState.borderTopLeftXRadius / safeDeltaWidth}px ${firstState.borderTopLeftYRadius / safeDeltaHeight}px`,
+          borderTopRightRadius: `${firstState.borderTopRightXRadius / safeDeltaWidth}px ${firstState.borderTopRightYRadius / safeDeltaHeight}px`,
+          borderBottomLeftRadius: `${firstState.borderBottomLeftXRadius / safeDeltaWidth}px ${firstState.borderBottomLeftYRadius / safeDeltaHeight}px`,
+          borderBottomRightRadius: `${firstState.borderBottomRightXRadius / safeDeltaWidth}px ${firstState.borderBottomRightYRadius / safeDeltaHeight}px`,
         };
         if (animationProps.properties) {
           const properties = Array.isArray(animationProps.properties)
@@ -207,6 +230,10 @@ export const Flip = (props: FlipProps) => {
     recordFirstState(local.id, result, properties());
   }, { defer: true }));
 
+  createRenderEffect(on(() => local.id, () => {
+    attach(local.id);
+  }));
+
   createEffect(on(triggerWith, () => {
     flip();
   }, { defer: true }));
@@ -217,7 +244,19 @@ export const Flip = (props: FlipProps) => {
       return;
     }
 
+    detach(local.id);
     recordFirstState(local.id, result, properties());
+
+    const owner = getOwner();
+    const id = local.id;
+    setTimeout(() => { // HACK: nextTick
+      runWithOwner(owner, () => {
+        const ids = attachedFlipIds();
+        if (ids.has(id)) return;
+
+        setFirstState(id, null);
+      });
+    }, 0);
   });
 
   return (

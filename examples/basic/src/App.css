@@ -90,3 +90,7 @@ h1 {
 .opacity {
   opacity: 0.5;
 }
+
+.enter {
+  scale: 0;
+}

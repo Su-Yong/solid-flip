@@ -1,4 +1,5 @@
 import { Accessor, createContext, createSignal } from 'solid-js';
+import { produce } from 'solid-js/store';
 
 import { captureState, DOMState } from '../state';
 
@@ -6,6 +7,8 @@ import type { JSX } from 'solid-js/jsx-runtime';
 import type { CSSStyleKeys } from '../types';
 
 export interface FlipContextProps {
+  attachedFlipIds: Accessor<Set<string>>;
+
   firstState: Accessor<Record<string, DOMState | null>>;
   lastState: Accessor<Record<string, DOMState | null>>;
   getFirstState: (id: string) => DOMState | null;
@@ -15,6 +18,9 @@ export interface FlipContextProps {
   recordFirstState: (id: string, element: Element, properties?: CSSStyleKeys[]) => void;
   setLastState: (id: string, state: DOMState | null) => void;
   recordLastState: (id: string, element: Element, properties?: CSSStyleKeys[]) => void;
+
+  attach: (id: string) => void;
+  detach: (id: string) => void;
 }
 
 export const FlipContext = createContext<FlipContextProps>();
@@ -26,12 +32,15 @@ export interface FlipProviderProps {
 }
 
 export const FlipProvider = (props: FlipProviderProps) => {
+  const [attachedFlipIds, setAttachedFlipIds] = createSignal(new Set<string>());
   const [firstState, setFirstState] = createSignal<Record<string, DOMState | null>>({});
   const [lastState, setLastState] = createSignal<Record<string, DOMState | null>>({});
 
   return (
     <BaseFlipProvider
       value={{
+        attachedFlipIds,
+
         firstState,
         lastState,
         getFirstState: (id) => firstState()[id],
@@ -59,6 +68,17 @@ export const FlipProvider = (props: FlipProviderProps) => {
           setLastState((prev) => ({
             ...prev,
             [id]: newState,
+          }));
+        },
+
+        attach: (id) => {
+          setAttachedFlipIds(produce((prev) => {
+            prev.add(id);
+          }));
+        },
+        detach: (id) => {
+          setAttachedFlipIds(produce((prev) => {
+            prev.delete(id);
           }));
         },
       }}

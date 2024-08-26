@@ -19,10 +19,12 @@ export interface DOMState {
 }
 
 const dimensionToNumber = (value: string, parent: number): number => {
-  if (value.endsWith('px')) return parseFloat(value.replace('px', ''));
-  if (value.endsWith('%')) return parent * (parseFloat(value.replace('%', '')) / 100);
+  let result = 0;
+  if (value.endsWith('px')) result = parseFloat(value.replace('px', ''));
+  if (value.endsWith('%')) result = parent * (parseFloat(value.replace('%', '')) / 100);
 
-  return 0;
+  if (!Number.isFinite(result)) result = 0;
+  return result;
 };
 const dimensionsToNumber = (value: string, parent: number): [number, number] => {
   if (!value.includes(' ')) {
