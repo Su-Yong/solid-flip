@@ -92,5 +92,10 @@ h1 {
 }
 
 .enter {
-  scale: 0;
+  transform: scale(0);
+}
+
+.exit {
+  transform: scale(0.1);
+  opacity: 0;
 }

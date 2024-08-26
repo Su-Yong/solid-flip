@@ -93,7 +93,7 @@ export const App = () => {
       </section>
 
       <section>
-        <h1>Flip + <code>For</code></h1>
+        <h1>Flip + <code>For</code> + Enter/Exit</h1>
         <div class={'header'}>
           <button onClick={onRemove5}>
             -
@@ -110,6 +110,7 @@ export const App = () => {
             {(item) => (
               <Flip
                 enter
+                exit
                 id={`flip5-${item}`}
                 with={flip5()}
               >
