@@ -4,7 +4,13 @@ import { produce } from 'solid-js/store';
 import { captureState, DOMState } from '../state';
 
 import type { JSX } from 'solid-js/jsx-runtime';
-import type { CSSStyleKeys } from '../types';
+import { CSSStyleKeys, FlipConfig } from '../types';
+
+const defaultConfig: FlipConfig = {
+  duration: 300,
+  easing: 'ease',
+  debug: false,
+};
 
 export interface FlipContextProps {
   attachedFlipIds: Accessor<Set<string>>;
@@ -21,6 +27,8 @@ export interface FlipContextProps {
 
   attach: (id: string) => void;
   detach: (id: string) => void;
+
+  defaultConfig: FlipConfig;
 }
 
 export const FlipContext = createContext<FlipContextProps>();
@@ -28,6 +36,7 @@ export const FlipContext = createContext<FlipContextProps>();
 const { Provider: BaseFlipProvider } = FlipContext;
 
 export interface FlipProviderProps {
+  defaultConfig?: Partial<FlipConfig>;
   children: JSX.Element;
 }
 
@@ -80,6 +89,11 @@ export const FlipProvider = (props: FlipProviderProps) => {
           setAttachedFlipIds(produce((prev) => {
             prev.delete(id);
           }));
+        },
+
+        defaultConfig: {
+          ...defaultConfig,
+          ...props.defaultConfig,
         },
       }}
     >

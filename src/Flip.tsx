@@ -36,6 +36,9 @@ export interface FlipProps {
   /* trigger */
   with?: ArrayOr<unknown>;
 
+  /* debug */
+  debug?: boolean;
+
   children: JSX.Element;
 }
 
@@ -48,7 +51,16 @@ export const Flip = (props: FlipProps) => {
     return props.children;
   }
 
-  const { attachedFlipIds, getFirstState, setFirstState, setLastState, recordFirstState, detach, attach } = context;
+  const {
+    attachedFlipIds,
+    getFirstState,
+    setFirstState,
+    setLastState,
+    recordFirstState,
+    detach,
+    attach,
+    defaultConfig,
+  } = context;
 
   const [
     animationProps,
@@ -57,9 +69,10 @@ export const Flip = (props: FlipProps) => {
     local,
   ] = splitProps(
     mergeProps({
-      duration: 300,
-      easing: 'ease-in-out',
+      duration: defaultConfig.duration,
+      easing: defaultConfig.easing,
       with: [],
+      debug: defaultConfig.debug,
     }, props),
     ['duration', 'easing', 'properties'],
     ['enter', 'exit'],
@@ -130,7 +143,6 @@ export const Flip = (props: FlipProps) => {
     const unflipStates = unflips().map((it) => captureState(it, properties()));
 
     const startKeyframe: Keyframe = {
-      transformOrigin: '50% 50%',
       translate: `${deltaX}px ${deltaY}px`,
       scale: `${deltaWidth} ${deltaHeight}`,
       backgroundColor: firstState.color,
@@ -154,12 +166,14 @@ export const Flip = (props: FlipProps) => {
     }
 
     animation = result.animate(
-      [startKeyframe, {}],
+      [{ transformOrigin: '50% 50%', ...startKeyframe }, {}],
       {
         duration: animationProps.duration,
         easing: animationProps.easing,
       },
     );
+    animation.addEventListener('finish', () => animation = null, { once: true });
+
     const animateUnflips = unflips().map((unflip, index) => {
       const firstUnflipState = unflipStates[index];
       const x = firstUnflipState.rect.left - lastState.rect.left;
@@ -194,6 +208,29 @@ export const Flip = (props: FlipProps) => {
       requestAnimationFrame(animateAll);
     };
     animateAll();
+
+    if (isDev && local.debug) {
+      const showDebugProps = () => {
+        const isValidElement = result instanceof HTMLElement || result instanceof SVGElement;
+
+        if (!isValidElement || !animation) {
+          Object.keys(startKeyframe).forEach((key) => {
+            delete (result as HTMLElement).dataset[`flip${key[0].toUpperCase()}${key.slice(1)}`];
+          });
+
+          return;
+        }
+
+        const style = getComputedStyle(result as Element);
+
+        Object.keys(startKeyframe).forEach((key) => {
+          (result as HTMLElement).dataset[`flip${key[0].toUpperCase()}${key.slice(1)}`] = style[key as keyof CSSStyleDeclaration] as string;
+        });
+        requestAnimationFrame(showDebugProps);
+      };
+
+      showDebugProps();
+    }
 
     return animation;
   };
@@ -236,12 +273,6 @@ export const Flip = (props: FlipProps) => {
       return;
     }
 
-    if (isDev) {
-      if (result instanceof HTMLElement || result instanceof SVGElement) {
-        result.dataset.flipId = local.id;
-      }
-    }
-
     if (!result.parentElement) return;
     flip();
   });
@@ -262,6 +293,15 @@ export const Flip = (props: FlipProps) => {
   createEffect(on(triggerWith, () => {
     flip();
   }, { defer: true }));
+
+  if (isDev) {
+    createEffect(on(() => local.debug, (isDebug) => {
+      if (result instanceof HTMLElement || result instanceof SVGElement) {
+        if (isDebug) result.dataset.flipId = local.id;
+        else delete result.dataset.flipId;
+      }
+    }));
+  }
 
   onCleanup(() => {
     if (!(result instanceof Element)) {

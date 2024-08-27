@@ -9,7 +9,7 @@ import { FlipProvider } from '../../../';
 const root = document.getElementById('root');
 
 render(() => (
-  <FlipProvider>
+  <FlipProvider defaultConfig={{ debug: true }}>
     <App/>
   </FlipProvider>
 ), root!);
