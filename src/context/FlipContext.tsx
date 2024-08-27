@@ -9,6 +9,8 @@ import { CSSStyleKeys, FlipConfig } from '../types';
 const defaultConfig: FlipConfig = {
   duration: 300,
   easing: 'ease',
+  preserve: false,
+
   debug: false,
 };
 

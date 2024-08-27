@@ -27,7 +27,7 @@ export const App = () => {
   ]);
   const [flip7, setFlip7] = createSignal(1);
 
-  const onRemove5 = () => setFlip5((prev) => prev.sort((a, b) => a - b).slice(0, prev.length - 1));
+  const onRemove5 = () => setFlip5((prev) => prev.filter((it) => it !== prev.length));
   const onShuffle5 = () => setFlip5(shuffle(flip5()));
   const onAdd5 = () => setFlip5((prev) => [...prev, prev.length + 1]);
   const onShuffle6 = () => setFlip6(shuffle(flip6().map((group) => ({ ...group, items: shuffle(group.items) }))));
@@ -111,6 +111,7 @@ export const App = () => {
               <Flip
                 enter
                 exit
+                preserve={'position'}
                 id={`flip5-${item}`}
                 with={flip5()}
               >
@@ -190,6 +191,7 @@ export const App = () => {
 interface CardProps {
   children: JSX.Element;
 }
+
 const Card = (props: CardProps) => {
   return (
     <div class={'card'}>

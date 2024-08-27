@@ -96,6 +96,7 @@ h1 {
 }
 
 .exit {
+  position: absolute;
   transform: scale(0.1);
   opacity: 0;
 }

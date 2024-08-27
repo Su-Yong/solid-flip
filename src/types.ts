@@ -5,5 +5,7 @@ export type CSSStyleKeys = ValueOf<{
 export interface FlipConfig {
   duration: number;
   easing: string;
+  preserve: false | 'scale' | 'position' | 'all';
+
   debug: boolean;
 }

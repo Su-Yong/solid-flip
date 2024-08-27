@@ -30,11 +30,12 @@ export interface FlipProps {
   duration?: number;
   easing?: string;
   properties?: ArrayOr<CSSStyleKeys>;
-  enter?: string | boolean;
-  exit?: string | boolean;
 
   /* trigger */
   with?: ArrayOr<unknown>;
+  enter?: string | boolean;
+  exit?: string | boolean;
+  preserve?: false | 'scale' | 'position' | 'all';
 
   /* debug */
   debug?: boolean;
@@ -71,11 +72,12 @@ export const Flip = (props: FlipProps) => {
     mergeProps({
       duration: defaultConfig.duration,
       easing: defaultConfig.easing,
+      preserve: defaultConfig.preserve,
       with: [],
       debug: defaultConfig.debug,
     }, props),
     ['duration', 'easing', 'properties'],
-    ['enter', 'exit'],
+    ['enter', 'exit', 'preserve'],
     ['with'],
   );
 
@@ -127,7 +129,12 @@ export const Flip = (props: FlipProps) => {
     return value as HTMLElement | SVGElement;
   };
 
-  const animate = (firstState: DOMState, lastState: DOMState) => {
+  const animate = (firstState: DOMState, lastState: DOMState, {
+    biasX = 0,
+    biasY = 0,
+    biasWidth = 1,
+    biasHeight = 1,
+  } = {}) => {
     const firstParentState = nested?.firstParentState();
     const lastParentState = nested?.lastParentState();
 
@@ -151,7 +158,7 @@ export const Flip = (props: FlipProps) => {
     const deltaY = -1 * parentDeltaY + firstState.rect.top - lastState.rect.top + offsetY;
     const deltaWidth = (firstState.rect.width / lastState.rect.width) / parentDeltaWidth;
     const deltaHeight = (firstState.rect.height / lastState.rect.height) / parentDeltaHeight;
-    const safeDeltaWidth = deltaWidth === 0 ? 1 : deltaWidth;
+    const safeDeltaWidth = (deltaWidth === 0) ? 1 : deltaWidth;
     const safeDeltaHeight = deltaHeight === 0 ? 1 : deltaHeight;
 
     const unflipStates = unflips().map((it) => captureState(it, properties()));
@@ -166,6 +173,10 @@ export const Flip = (props: FlipProps) => {
       borderBottomLeftRadius: `${firstState.borderBottomLeftXRadius / safeDeltaWidth}px ${firstState.borderBottomLeftYRadius / safeDeltaHeight}px`,
       borderBottomRightRadius: `${firstState.borderBottomRightXRadius / safeDeltaWidth}px ${firstState.borderBottomRightYRadius / safeDeltaHeight}px`,
     };
+    const endKeyframe: Keyframe = {};
+    if (biasX || biasY) endKeyframe.translate = `${biasX ?? 0}px ${biasY ?? 0}px`;
+    if (biasWidth !== 1 || biasHeight !== 1) endKeyframe.scale = `${biasWidth} ${biasHeight}`;
+
     if (animationProps.properties) {
       const properties = Array.isArray(animationProps.properties)
         ? animationProps.properties
@@ -183,10 +194,11 @@ export const Flip = (props: FlipProps) => {
     if (!childElement) return null;
 
     animation = childElement.animate(
-      [{ transformOrigin: '50% 50%', ...startKeyframe }, {}],
+      [{ transformOrigin: '50% 50%', ...startKeyframe }, endKeyframe],
       {
         duration: animationProps.duration,
         easing: animationProps.easing,
+        fill: 'both',
       },
     ) ?? null;
     animation.addEventListener('finish', () => animation = null, { once: true });
@@ -322,6 +334,8 @@ export const Flip = (props: FlipProps) => {
     const owner = getOwner();
     const exitClassName = exitClass();
     const id = local.id;
+    const beforeElement = childElement.previousElementSibling;
+    const afterElement = childElement.nextElementSibling;
     const parentElement = childElement.parentElement;
 
     queueMicrotask(() => {
@@ -330,10 +344,49 @@ export const Flip = (props: FlipProps) => {
           const childElement = child();
           if (!childElement) return;
 
+          animation?.cancel();
+          animation = null;
           childElement.classList.add(exitClassName);
-          parentElement.append(childElement);
+
+          if (afterElement) afterElement.insertAdjacentElement('beforebegin', childElement);
+          else if (beforeElement) beforeElement.insertAdjacentElement('afterend', childElement);
+          else parentElement.append(childElement);
+
           const lastState = captureState(childElement, properties());
-          animate(newState, lastState)?.addEventListener('finish', () => {
+          const rect: Required<DOMRectInit> = {
+            x: lastState.rect.x,
+            y: lastState.rect.y,
+            width: lastState.rect.width,
+            height: lastState.rect.height,
+          };
+
+          const isNewStatePositionAbsolute = newState.position === 'absolute' || newState.position === 'fixed';
+          const isLastStatePositionAbsolute = lastState.position === 'absolute' || lastState.position === 'fixed';
+          const options = {
+            biasX: 0,
+            biasY: 0,
+            biasWidth: 1,
+            biasHeight: 1,
+          };
+
+          const isPositionPreserve = timingProps.preserve === 'position' || timingProps.preserve === 'all';
+          const isScalePreserve = timingProps.preserve === 'scale' || timingProps.preserve === 'all';
+          if (isNewStatePositionAbsolute && !isLastStatePositionAbsolute) {
+            if (isPositionPreserve) options.biasX = lastState.rect.x - newState.rect.x;
+            if (isPositionPreserve) options.biasY = lastState.rect.y - newState.rect.y;
+            if (isScalePreserve) options.biasWidth = lastState.rect.width / newState.rect.width;
+            if (isScalePreserve) options.biasHeight = lastState.rect.height / newState.rect.height;
+          }
+          if (!isNewStatePositionAbsolute && isLastStatePositionAbsolute) {
+            if (isPositionPreserve) options.biasX = newState.rect.x - lastState.rect.x + (newState.rect.width - lastState.rect.width) / 2;
+            if (isPositionPreserve) options.biasY = newState.rect.y - lastState.rect.y + (newState.rect.height - lastState.rect.height) / 2;
+            if (isScalePreserve) options.biasWidth = newState.rect.width / lastState.rect.width;
+            if (isScalePreserve) options.biasHeight = newState.rect.height / lastState.rect.height;
+          }
+          lastState.rect = DOMRect.fromRect(rect);
+          console.log('exit', newState, '->', lastState, '/', options);
+
+          animate(newState, lastState, options)?.addEventListener('finish', () => {
             childElement.remove();
           });
         }
