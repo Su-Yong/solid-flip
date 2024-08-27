@@ -384,7 +384,6 @@ export const Flip = (props: FlipProps) => {
             if (isScalePreserve) options.biasHeight = newState.rect.height / lastState.rect.height;
           }
           lastState.rect = DOMRect.fromRect(rect);
-          console.log('exit', newState, '->', lastState, '/', options);
 
           animate(newState, lastState, options)?.addEventListener('finish', () => {
             childElement.remove();
