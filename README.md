@@ -143,18 +143,57 @@ Please check the [example](./example) folder or [codesandbox](https://codesandbo
 `FlipProvider` component is used to wrap the root component of your application. It provides the context for the flip animation.
 If you don't wrap your root component with `FlipProvider`, the flip animation will not work.
 
+| Property      | Type         | Default | Description                                                                                                       |
+|---------------|--------------|---------|-------------------------------------------------------------------------------------------------------------------|
+| defaultConfig | `FlipConfig` | -       | The default configuration of the flip animation. If you set the value in `Flip` component, it will be overridden. |
+
+```tsx
+interface FlipConfig {
+  duration?: number;
+  easing?: string;
+  enter?: string | boolean;
+  exit?: string | boolean;
+  preserve?: false | 'position' | 'scale' | 'all';
+}
+```
+See `Flip` component for more details.
+
+- Usage Example
+   ```tsx
+   import { FlipProvider } from 'solid-flip';
+   
+   const root = document.getElementById('root');
+   
+   render(() => (
+     <FlipProvider>
+       <App/>
+     </FlipProvider>
+   ), root!);
+   ```
+
+
 ## Flip
 `Flip` component is used to wrap the content that you want to animate. It directly passes children.
 
-| Property   | Type                   | Default      | Description                                                                                                                                                                                                                      |
-|------------|------------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| id*        | `string`               | _(required)_ | The unique id of the flip component                                                                                                                                                                                              |
-| with       | `unknown \| unknown[]` | []           | The condition to determine when the content should be animated                                                                                                                                                                   |
-| duration   | `number`               | 300          | The duration of the animation                                                                                                                                                                                                    |
-| easing     | `string`               | 'ease'       | The easing of the animation                                                                                                                                                                                                      |
-| properties | `string \| string[]`   | []           | The additional properties that will be animated                                                                                                                                                                                  |
-| enter      | `string \| boolean`    | false        | If this value is truthy, The element will be animate when the element is inserted. The value means the initial class name of the element. If you set this value as `true`, entering class name will be set as `enter`            |
-| exit       | `string \| boolean`    | false        | If this value is truthy, The element will be animate when the element is removed. The value means the class name of the element after element removed. If you set this value as `true`, exiting class name will be set as `exit` |
+| Property   | Type                                      | Default      | Description                                                                                                                                                                                                                                                                                                                                                                                               |
+|------------|-------------------------------------------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| id*        | `string`                                  | _(required)_ | The unique id of the flip component                                                                                                                                                                                                                                                                                                                                                                       |
+| with       | `unknown \| unknown[]`                    | []           | The condition to determine when the content should be animated                                                                                                                                                                                                                                                                                                                                            |
+| duration   | `number`                                  | 300          | The duration of the animation                                                                                                                                                                                                                                                                                                                                                                             |
+| easing     | `string`                                  | 'ease'       | The easing of the animation                                                                                                                                                                                                                                                                                                                                                                               |
+| properties | `string \| string[]`                      | []           | The additional properties that will be animated                                                                                                                                                                                                                                                                                                                                                           |
+| enter      | `string \| boolean`                       | false        | If this value is truthy, The element will be animate when the element is inserted. The value means the initial class name of the element. If you set this value as `true`, entering class name will be set as `enter`                                                                                                                                                                                     |
+| exit       | `string \| boolean`                       | false        | If this value is truthy, The element will be animate when the element is removed. The value means the class name of the element after element removed. If you set this value as `true`, exiting class name will be set as `exit`                                                                                                                                                                          |
+| preserve   | `false \| 'position' \| 'scale' \| 'all'` | false        | This value manipulates the element's style when the element runs in 'enter' or 'exit'. If you set this value as `position`, the element will be use the value when the element is connected to DOM. So that It prevent the element moving to 'enter' or 'exit' position. It will be useful when you set the 'exit' animation's position as absolute or fixed. 'scale' and 'all' also act like 'position'. |
+
+- Usage Example
+  ```tsx
+  import { Flip } from 'solid-flip';
+  
+  <Flip id={'my-flip-id'} with={flip()}>
+    <div class={flip() ? 'show' : 'hidden'}>Animated content</div>
+  </Flip>
+    ```
 
 ## Unflip
 `Unflip` component is used to warp the content that ignore parent flip animation. It directly passes children.
@@ -162,3 +201,17 @@ If you don't wrap your root component with `FlipProvider`, the flip animation wi
 | Property | Type     | Default | Description                            |
 |----------|----------|---------|----------------------------------------|
 | id       | `string` | -       | A parent id that ignore flip animation |
+
+- Usage Example
+  ```tsx
+  import { Unflip } from 'solid-flip';
+  
+  <Flip id={'my-flip-id'}>
+    <div>
+      Animated content
+      <Unflip> // id is not required. Unflip component will find the parent flip component automatically.
+        <div>Ignore flip animation</div>
+      </Unflip>
+    </div>
+  </Flip>
+  ```
