@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, JSX, Show } from 'solid-js';
 
 import { Flip, Unflip } from '../../../';
 
@@ -138,9 +138,9 @@ export const App = () => {
                   <For each={item.items}>
                     {(subItem) => (
                       <Flip id={`flip6-${subItem}`} with={flip6()}>
-                        <div class={'card'}>
+                        <Card>
                           {subItem}
-                        </div>
+                        </Card>
                       </Flip>
                     )}
                   </For>
@@ -172,19 +172,28 @@ export const App = () => {
             }}
           >
             <Unflip>
-              <div>
-                <div class={'card red'}>
-                  Inner Component 1
-                </div>
-                <div class={'card blue'}>
-                  Inner Component 2
-                </div>
+              <div class={'card red'}>
+                Inner Component 1
+              </div>
+              <div class={'card blue'}>
+                Inner Component 2
               </div>
             </Unflip>
           </div>
         </Flip>
 
       </section>
+    </div>
+  );
+};
+
+interface CardProps {
+  children: JSX.Element;
+}
+const Card = (props: CardProps) => {
+  return (
+    <div class={'card'}>
+      {props.children}
     </div>
   );
 };

@@ -108,12 +108,26 @@ export const Flip = (props: FlipProps) => {
     return null;
   });
 
-  const animate = (firstState: DOMState, lastState: DOMState) => {
-    if (!(result instanceof Element)) {
-      console.warn('Flip children must be a single DOM node');
-      return;
+  let result: JSX.Element | null = null;
+  let animation: Animation | null = null;
+
+  const child = () => {
+    let value: unknown = result;
+
+    if (value instanceof Function) value = value();
+    if (Array.isArray(value)) {
+      console.warn('Flip children must be a "single" DOM node', value);
+      return null;
+    }
+    if (!(value instanceof HTMLElement) && !(value instanceof SVGElement)) {
+      console.warn('Flip children looks like not a DOM node', value);
+      return null;
     }
 
+    return value as HTMLElement | SVGElement;
+  };
+
+  const animate = (firstState: DOMState, lastState: DOMState) => {
     const firstParentState = nested?.firstParentState();
     const lastParentState = nested?.lastParentState();
 
@@ -165,13 +179,16 @@ export const Flip = (props: FlipProps) => {
       });
     }
 
-    animation = result.animate(
+    const childElement = child();
+    if (!childElement) return null;
+
+    animation = childElement.animate(
       [{ transformOrigin: '50% 50%', ...startKeyframe }, {}],
       {
         duration: animationProps.duration,
         easing: animationProps.easing,
       },
-    );
+    ) ?? null;
     animation.addEventListener('finish', () => animation = null, { once: true });
 
     const animateUnflips = unflips().map((unflip, index) => {
@@ -181,7 +198,7 @@ export const Flip = (props: FlipProps) => {
 
       return () => {
         const target = unflip as HTMLElement;
-        const [parentScaleX, parentScaleY] = getComputedStyle(result as Element).scale.split(' ').map(Number);
+        const [parentScaleX, parentScaleY] = getComputedStyle(childElement).scale.split(' ').map(Number);
 
         if (!Number.isFinite(parentScaleX) || !Number.isFinite(parentScaleY)) {
           target.style.removeProperty('scale');
@@ -211,20 +228,18 @@ export const Flip = (props: FlipProps) => {
 
     if (isDev && local.debug) {
       const showDebugProps = () => {
-        const isValidElement = result instanceof HTMLElement || result instanceof SVGElement;
-
-        if (!isValidElement || !animation) {
+        if (!animation) {
           Object.keys(startKeyframe).forEach((key) => {
-            delete (result as HTMLElement).dataset[`flip${key[0].toUpperCase()}${key.slice(1)}`];
+            delete childElement.dataset[`flip${key[0].toUpperCase()}${key.slice(1)}`];
           });
 
           return;
         }
 
-        const style = getComputedStyle(result as Element);
+        const style = getComputedStyle(childElement);
 
         Object.keys(startKeyframe).forEach((key) => {
-          (result as HTMLElement).dataset[`flip${key[0].toUpperCase()}${key.slice(1)}`] = style[key as keyof CSSStyleDeclaration] as string;
+          childElement.dataset[`flip${key[0].toUpperCase()}${key.slice(1)}`] = style[key as keyof CSSStyleDeclaration] as string;
         });
         requestAnimationFrame(showDebugProps);
       };
@@ -235,20 +250,16 @@ export const Flip = (props: FlipProps) => {
     return animation;
   };
 
-  let result: JSX.Element | null = null;
-  let animation: Animation | null = null;
   const flip = () => {
-    if (!(result instanceof Element)) {
-      console.warn('Flip children must be a single DOM node', result);
-      return;
-    }
+    const childElement = child();
+    if (!childElement) return;
 
     const enterClassName = enterClass();
     let firstState = getFirstState(local.id);
     if (!firstState && enterClassName) {
-      result.classList.add(enterClassName);
-      firstState = captureState(result, properties());
-      result.classList.remove(enterClassName);
+      childElement.classList.add(enterClassName);
+      firstState = captureState(childElement, properties());
+      childElement.classList.remove(enterClassName);
 
       setFirstState(local.id, firstState);
     }
@@ -256,34 +267,30 @@ export const Flip = (props: FlipProps) => {
     if (firstState) {
       animation?.cancel();
       animation = null;
-      const lastState = captureState(result, properties());
+      const lastState = captureState(childElement, properties());
       setLastState(local.id, lastState);
 
       requestAnimationFrame(() => {
         animate(firstState, lastState);
       });
     } else {
-      recordFirstState(local.id, result, properties());
+      recordFirstState(local.id, childElement, properties());
     }
   };
 
   onMount(() => {
-    if (!(result instanceof Element)) {
-      console.warn('Flip children must be a single DOM node');
-      return;
-    }
+    const childElement = child();
+    if (!childElement) return;
 
-    if (!result.parentElement) return;
+    if (!childElement.parentElement) return;
     flip();
   });
 
   createComputed(on(triggerWith, () => {
-    if (!(result instanceof Element)) {
-      console.warn('Flip children must be a single DOM node');
-      return;
-    }
+    const childElement = child();
+    if (!childElement) return;
 
-    recordFirstState(local.id, result, properties());
+    recordFirstState(local.id, childElement, properties());
   }, { defer: true }));
 
   createRenderEffect(on(() => local.id, () => {
@@ -296,38 +303,38 @@ export const Flip = (props: FlipProps) => {
 
   if (isDev) {
     createEffect(on(() => local.debug, (isDebug) => {
-      if (result instanceof HTMLElement || result instanceof SVGElement) {
-        if (isDebug) result.dataset.flipId = local.id;
-        else delete result.dataset.flipId;
-      }
+      const childElement = child();
+      if (!childElement) return;
+
+      if (isDebug) childElement.dataset.flipId = local.id;
+      else delete childElement.dataset.flipId;
     }));
   }
 
   onCleanup(() => {
-    if (!(result instanceof Element)) {
-      console.warn('Flip children must be a single DOM node');
-      return;
-    }
+    const childElement = child();
+    if (!childElement) return;
 
     detach(local.id);
-    const newState = captureState(result, properties());
+    const newState = captureState(childElement, properties());
     setFirstState(local.id, newState);
 
     const owner = getOwner();
     const exitClassName = exitClass();
     const id = local.id;
-    const parentElement = result.parentElement;
+    const parentElement = childElement.parentElement;
 
     queueMicrotask(() => {
       runWithOwner(owner, () => {
         if (exitClassName && parentElement) {
-          if (!(result instanceof HTMLElement) && !(result instanceof SVGElement)) return;
+          const childElement = child();
+          if (!childElement) return;
 
-          result.classList.add(exitClassName);
-          parentElement.append(result);
-          const lastState = captureState(result, properties());
+          childElement.classList.add(exitClassName);
+          parentElement.append(childElement);
+          const lastState = captureState(childElement, properties());
           animate(newState, lastState)?.addEventListener('finish', () => {
-            (result as Element).remove();
+            childElement.remove();
           });
         }
       });
