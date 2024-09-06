@@ -30,7 +30,13 @@ export const App = () => {
   const onRemove5 = () => setFlip5((prev) => prev.filter((it) => it !== prev.length));
   const onShuffle5 = () => setFlip5(shuffle(flip5()));
   const onAdd5 = () => setFlip5((prev) => [...prev, prev.length + 1]);
+
+  const onRemoveGroup6 = () => setFlip6((prev) => prev.filter((it) => it.id !== prev.length));
+  const onRemoveItem6 = () => setFlip6((prev) => prev.map((it) => ({ ...it, items: Array.from({ length: it.items.length - 1 }).map((_, index) => ((it.items.length - 1) * Math.max(0, it.id - 1)) + index + 1) })));
   const onShuffle6 = () => setFlip6(shuffle(flip6().map((group) => ({ ...group, items: shuffle(group.items) }))));
+  const onAddItem6 = () => setFlip6((prev) => prev.map((it) => ({ ...it, items: Array.from({ length: it.items.length + 1 }).map((_, index) => ((it.items.length + 1) * Math.max(0, it.id - 1)) + index + 1) })));
+  const onAddGroup6 = () => setFlip6((prev) => [...prev, { id: prev.length + 1, items: Array.from({ length: prev[0].items.length }).map((_, index) => (prev[0].items.length * Math.max(0, prev.length)) + index + 1) }]);
+
   const onRemove7 = () => setFlip7((prev) => Math.max(1, prev - 1));
   const onAdd7 = () => setFlip7((prev) => Math.min(3, prev + 1));
 
@@ -127,27 +133,49 @@ export const App = () => {
       <section>
         <h1>Nested Flip</h1>
         <div class={'header'}>
+          <button onClick={onRemoveGroup6}>
+            --
+          </button>
+          <button onClick={onRemoveItem6}>
+            -
+          </button>
           <button onClick={onShuffle6}>
             shuffle
+          </button>
+          <button onClick={onAddItem6}>
+            +
+          </button>
+          <button onClick={onAddGroup6}>
+            ++
           </button>
         </div>
         <div class={'grid'}>
           <For each={flip6()}>
-            {(item) => (
-              <Flip id={`flip6-group-${item.id}`} with={flip6()}>
-                <div class={'card grid'}>
-                  <For each={item.items}>
-                    {(subItem) => (
-                      <Flip id={`flip6-${subItem}`} with={flip6()}>
-                        <Card>
-                          {subItem}
-                        </Card>
-                      </Flip>
-                    )}
-                  </For>
-                </div>
-              </Flip>
-            )}
+          {(item) => (
+            <Flip
+              enter
+              exit
+              id={`flip6-group-${item.id}`}
+              with={flip6()}
+            >
+              <div class={'card grid'}>
+                <For each={item.items}>
+                  {(subItem) => (
+                    <Flip
+                      enter
+                      exit
+                      id={`flip6-${subItem}`}
+                      with={flip6()}
+                    >
+                      <Card>
+                        {subItem}
+                      </Card>
+                    </Flip>
+                  )}
+                </For>
+              </div>
+            </Flip>
+          )}
           </For>
         </div>
       </section>

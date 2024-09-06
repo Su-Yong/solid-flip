@@ -21,6 +21,8 @@ import { FlipContext, NestedFlipContext, NestedFlipProvider } from './context';
 import type { JSX } from 'solid-js/jsx-runtime';
 import type { CSSStyleKeys } from './types';
 
+const EXIT_REF = '__test';// Symbol('exit-ref');
+
 type ArrayOr<T> = T | T[];
 
 export interface FlipProps {
@@ -82,6 +84,7 @@ export const Flip = (props: FlipProps) => {
   );
 
   const [unflips, setUnflips] = createSignal<Element[]>([]);
+  const [isExiting, setIsExiting] = createSignal(false);
 
   const triggerWith = createMemo(() => {
     const value = triggerProps.with;
@@ -313,15 +316,12 @@ export const Flip = (props: FlipProps) => {
     flip();
   }, { defer: true }));
 
-  if (isDev) {
-    createEffect(on(() => local.debug, (isDebug) => {
-      const childElement = child();
-      if (!childElement) return;
+  createEffect(on(() => local.id, (id) => {
+    const childElement = child();
+    if (!childElement) return;
 
-      if (isDebug) childElement.dataset.flipId = local.id;
-      else delete childElement.dataset.flipId;
-    }));
-  }
+    childElement.dataset.flipId = id;
+  }));
 
   onCleanup(() => {
     const childElement = child();
@@ -334,15 +334,19 @@ export const Flip = (props: FlipProps) => {
     const owner = getOwner();
     const exitClassName = exitClass();
     const id = local.id;
+    const parentId = nested?.parentId();
+    const parentElement = childElement.parentElement;
     const beforeElement = childElement.previousElementSibling;
     const afterElement = childElement.nextElementSibling;
-    const parentElement = childElement.parentElement;
 
-    queueMicrotask(() => {
-      runWithOwner(owner, () => {
-        if (exitClassName && parentElement) {
+    if (exitClassName && parentElement?.isConnected) {
+      setIsExiting(true);
+
+      queueMicrotask(() => {
+        runWithOwner(owner, () => {
           const childElement = child();
           if (!childElement) return;
+          if (nested?.parentExiting()) return;
 
           animation?.cancel();
           animation = null;
@@ -351,6 +355,8 @@ export const Flip = (props: FlipProps) => {
           if (afterElement) afterElement.insertAdjacentElement('beforebegin', childElement);
           else if (beforeElement) beforeElement.insertAdjacentElement('afterend', childElement);
           else parentElement.append(childElement);
+
+          console.log('exit', id, childElement, childElement.isConnected, '/ parent:', parentElement.isConnected);
 
           const lastState = captureState(childElement, properties());
           const rect: Required<DOMRectInit> = {
@@ -385,26 +391,33 @@ export const Flip = (props: FlipProps) => {
           }
           lastState.rect = DOMRect.fromRect(rect);
 
+          console.log('exit', childElement.isConnected, lastState, options);
           animate(newState, lastState, options)?.addEventListener('finish', () => {
             childElement.remove();
           });
-        }
+        });
       });
-    });
+    }
 
     setTimeout(() => { // HACK: nextFrame
       runWithOwner(owner, () => {
         const ids = attachedFlipIds();
-        if (ids.has(id)) return;
+        if (ids.has(id)) {
+          // fakeElement?.remove();
+          return;
+        }
+        // exitAnimation?.();
 
         setFirstState(id, null);
+        setIsExiting(false);
       });
-    }, 16);
+    }, 0);
   });
 
   return (
     <NestedFlipProvider
       id={local.id}
+      exiting={isExiting()}
       unflips={unflips()}
       setUnflips={setUnflips}
     >

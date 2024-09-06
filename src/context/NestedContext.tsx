@@ -7,6 +7,7 @@ import type { JSX } from 'solid-js/jsx-runtime';
 
 export interface NestedFlipContextProps {
   parentId: Accessor<string>;
+  parentExiting: Accessor<boolean>;
   firstParentState: Accessor<DOMState | null>;
   lastParentState: Accessor<DOMState | null>;
   unflips: Accessor<Element[]>;
@@ -18,6 +19,7 @@ export const NestedFlipContext = createContext<NestedFlipContextProps>();
 export interface NestedFlipProviderProps {
   id: string;
   children: JSX.Element;
+  exiting: boolean;
   unflips: Element[];
   setUnflips: (unflips: Element[]) => void;
 }
@@ -69,6 +71,7 @@ export const NestedFlipProvider = (props: NestedFlipProviderProps) => {
     <NestedFlipContext.Provider
       value={{
         parentId: () => props.id,
+        parentExiting: () => props.exiting,
         firstParentState,
         lastParentState,
         unflips: () => props.unflips,
