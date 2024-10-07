@@ -73,6 +73,7 @@ export const Flip = (props: FlipProps) => {
       duration: defaultConfig.duration,
       easing: defaultConfig.easing,
       preserve: defaultConfig.preserve,
+      properties: defaultConfig.properties as FlipProps['properties'],
       with: [],
       debug: defaultConfig.debug,
     }, props),
@@ -163,32 +164,32 @@ export const Flip = (props: FlipProps) => {
 
     const unflipStates = unflips().map((it) => captureState(it, properties()));
 
-    const startKeyframe: Keyframe = {
-      translate: `${deltaX}px ${deltaY}px`,
-      scale: `${deltaWidth} ${deltaHeight}`,
-      backgroundColor: firstState.color,
-      opacity: firstState.opacity,
-      borderTopLeftRadius: `${firstState.borderTopLeftXRadius / safeDeltaWidth}px ${firstState.borderTopLeftYRadius / safeDeltaHeight}px`,
-      borderTopRightRadius: `${firstState.borderTopRightXRadius / safeDeltaWidth}px ${firstState.borderTopRightYRadius / safeDeltaHeight}px`,
-      borderBottomLeftRadius: `${firstState.borderBottomLeftXRadius / safeDeltaWidth}px ${firstState.borderBottomLeftYRadius / safeDeltaHeight}px`,
-      borderBottomRightRadius: `${firstState.borderBottomRightXRadius / safeDeltaWidth}px ${firstState.borderBottomRightYRadius / safeDeltaHeight}px`,
-    };
-    const endKeyframe: Keyframe = {};
-    if (biasX || biasY) endKeyframe.translate = `${biasX ?? 0}px ${biasY ?? 0}px`;
-    if (biasWidth !== 1 || biasHeight !== 1) endKeyframe.scale = `${biasWidth} ${biasHeight}`;
+    const allowed = properties();
+    const startKeyframe: Keyframe = {};
 
-    if (animationProps.properties) {
-      const properties = Array.isArray(animationProps.properties)
-        ? animationProps.properties
-        : [animationProps.properties];
-
-      properties.forEach((property) => {
+    if (allowed) {
+      allowed.forEach((property) => {
         const value = firstState.additionalProperties?.[property];
 
         if (value) startKeyframe[property as string] = value as string;
         else console.warn(`Property "${property}" is not found in the first state`);
       });
     }
+
+    const allowedTransform = allowed.includes('transform');
+    const allowedBorderRadius = allowed.includes('border') || allowed.includes('borderRadius');
+    if (allowed.includes('translate') || allowedTransform) startKeyframe.translate = `${deltaX}px ${deltaY}px`;
+    if (allowed.includes('scale') || allowedTransform) startKeyframe.scale = `${deltaWidth} ${deltaHeight}`;
+    if (allowed.includes('color') || allowed.some((it) => it.startsWith('background'))) startKeyframe.backgroundColor = firstState.color;
+    if (allowed.includes('opacity')) startKeyframe.opacity = firstState.opacity;
+    if (allowed.includes('borderTopLeftRadius') || allowedBorderRadius) startKeyframe.borderTopLeftRadius = `${firstState.borderTopLeftXRadius / safeDeltaWidth}px ${firstState.borderTopLeftYRadius / safeDeltaHeight}px`;
+    if (allowed.includes('borderTopRightRadius') || allowedBorderRadius) startKeyframe.borderTopRightRadius = `${firstState.borderTopRightXRadius / safeDeltaWidth}px ${firstState.borderTopRightYRadius / safeDeltaHeight}px`;
+    if (allowed.includes('borderBottomLeftRadius') || allowedBorderRadius) startKeyframe.borderBottomLeftRadius = `${firstState.borderBottomLeftXRadius / safeDeltaWidth}px ${firstState.borderBottomLeftYRadius / safeDeltaHeight}px`;
+    if (allowed.includes('borderBottomRightRadius') || allowedBorderRadius) startKeyframe.borderBottomRightRadius = `${firstState.borderBottomRightXRadius / safeDeltaWidth}px ${firstState.borderBottomRightYRadius / safeDeltaHeight}px`;
+
+    const endKeyframe: Keyframe = {};
+    if (biasX || biasY) endKeyframe.translate = `${biasX ?? 0}px ${biasY ?? 0}px`;
+    if (biasWidth !== 1 || biasHeight !== 1) endKeyframe.scale = `${biasWidth} ${biasHeight}`;
 
     const childElement = child();
     if (!childElement) return null;

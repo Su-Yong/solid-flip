@@ -6,6 +6,7 @@ export interface FlipConfig {
   duration: number;
   easing: string;
   preserve: false | 'scale' | 'position' | 'all';
+  properties: string[];
 
   debug: boolean;
 }

@@ -1,5 +1,4 @@
 import { Accessor, createContext, createSignal } from 'solid-js';
-import { produce } from 'solid-js/store';
 
 import { captureState, DOMState } from '../state';
 
@@ -10,6 +9,7 @@ const defaultConfig: FlipConfig = {
   duration: 300,
   easing: 'ease',
   preserve: false,
+  properties: ['translate', 'scale', 'color', 'opacity', 'border'],
 
   debug: false,
 };
@@ -83,14 +83,16 @@ export const FlipProvider = (props: FlipProviderProps) => {
         },
 
         attach: (id) => {
-          setAttachedFlipIds(produce((prev) => {
-            prev.add(id);
-          }));
+          const attached = attachedFlipIds();
+          attached.add(id);
+
+          setAttachedFlipIds(attached);
         },
         detach: (id) => {
-          setAttachedFlipIds(produce((prev) => {
-            prev.delete(id);
-          }));
+          const attached = attachedFlipIds();
+          attached.delete(id);
+
+          setAttachedFlipIds(attached);
         },
 
         defaultConfig: {
