@@ -1,6 +1,6 @@
 {
   "name": "solid-flip",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "The most advanced Flip animation library for Solid.js inspired by react-flip-toolkit",
   "main": "dist/index.umd.js",
   "module": "dist/index.es.js",
