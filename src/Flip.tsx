@@ -26,6 +26,9 @@ type ArrayOr<T> = T | T[];
 export interface FlipProps {
   id: string;
 
+  /* general props */
+  enabled?: boolean;
+
   /* animation props */
   duration?: number;
   easing?: string;
@@ -70,6 +73,7 @@ export const Flip = (props: FlipProps) => {
     local,
   ] = splitProps(
     mergeProps({
+      enabled: true,
       duration: defaultConfig.duration,
       easing: defaultConfig.easing,
       preserve: defaultConfig.preserve,
@@ -264,6 +268,8 @@ export const Flip = (props: FlipProps) => {
   };
 
   const flip = () => {
+    if (!local.enabled) return;
+
     const childElement = child();
     if (!childElement) return;
 
@@ -339,59 +345,61 @@ export const Flip = (props: FlipProps) => {
     const afterElement = childElement.nextElementSibling;
     const parentElement = childElement.parentElement;
 
-    queueMicrotask(() => {
-      runWithOwner(owner, () => {
-        if (exitClassName && parentElement) {
-          const childElement = child();
-          if (!childElement) return;
+    if (local.enabled) {
+      queueMicrotask(() => {
+        runWithOwner(owner, () => {
+          if (exitClassName && parentElement) {
+            const childElement = child();
+            if (!childElement) return;
 
-          animation?.cancel();
-          animation = null;
-          childElement.classList.add(exitClassName);
+            animation?.cancel();
+            animation = null;
+            childElement.classList.add(exitClassName);
 
-          if (afterElement) afterElement.insertAdjacentElement('beforebegin', childElement);
-          else if (beforeElement) beforeElement.insertAdjacentElement('afterend', childElement);
-          else parentElement.append(childElement);
+            if (afterElement) afterElement.insertAdjacentElement('beforebegin', childElement);
+            else if (beforeElement) beforeElement.insertAdjacentElement('afterend', childElement);
+            else parentElement.append(childElement);
 
-          const lastState = captureState(childElement, properties());
-          const rect: Required<DOMRectInit> = {
-            x: lastState.rect.x,
-            y: lastState.rect.y,
-            width: lastState.rect.width,
-            height: lastState.rect.height,
-          };
+            const lastState = captureState(childElement, properties());
+            const rect: Required<DOMRectInit> = {
+              x: lastState.rect.x,
+              y: lastState.rect.y,
+              width: lastState.rect.width,
+              height: lastState.rect.height,
+            };
 
-          const isNewStatePositionAbsolute = newState.position === 'absolute' || newState.position === 'fixed';
-          const isLastStatePositionAbsolute = lastState.position === 'absolute' || lastState.position === 'fixed';
-          const options = {
-            biasX: 0,
-            biasY: 0,
-            biasWidth: 1,
-            biasHeight: 1,
-          };
+            const isNewStatePositionAbsolute = newState.position === 'absolute' || newState.position === 'fixed';
+            const isLastStatePositionAbsolute = lastState.position === 'absolute' || lastState.position === 'fixed';
+            const options = {
+              biasX: 0,
+              biasY: 0,
+              biasWidth: 1,
+              biasHeight: 1,
+            };
 
-          const isPositionPreserve = timingProps.preserve === 'position' || timingProps.preserve === 'all';
-          const isScalePreserve = timingProps.preserve === 'scale' || timingProps.preserve === 'all';
-          if (isNewStatePositionAbsolute && !isLastStatePositionAbsolute) {
-            if (isPositionPreserve) options.biasX = lastState.rect.x - newState.rect.x;
-            if (isPositionPreserve) options.biasY = lastState.rect.y - newState.rect.y;
-            if (isScalePreserve) options.biasWidth = lastState.rect.width / newState.rect.width;
-            if (isScalePreserve) options.biasHeight = lastState.rect.height / newState.rect.height;
+            const isPositionPreserve = timingProps.preserve === 'position' || timingProps.preserve === 'all';
+            const isScalePreserve = timingProps.preserve === 'scale' || timingProps.preserve === 'all';
+            if (isNewStatePositionAbsolute && !isLastStatePositionAbsolute) {
+              if (isPositionPreserve) options.biasX = lastState.rect.x - newState.rect.x;
+              if (isPositionPreserve) options.biasY = lastState.rect.y - newState.rect.y;
+              if (isScalePreserve) options.biasWidth = lastState.rect.width / newState.rect.width;
+              if (isScalePreserve) options.biasHeight = lastState.rect.height / newState.rect.height;
+            }
+            if (!isNewStatePositionAbsolute && isLastStatePositionAbsolute) {
+              if (isPositionPreserve) options.biasX = newState.rect.x - lastState.rect.x + (newState.rect.width - lastState.rect.width) / 2;
+              if (isPositionPreserve) options.biasY = newState.rect.y - lastState.rect.y + (newState.rect.height - lastState.rect.height) / 2;
+              if (isScalePreserve) options.biasWidth = newState.rect.width / lastState.rect.width;
+              if (isScalePreserve) options.biasHeight = newState.rect.height / lastState.rect.height;
+            }
+            lastState.rect = DOMRect.fromRect(rect);
+
+            animate(newState, lastState, options)?.addEventListener('finish', () => {
+              childElement.remove();
+            });
           }
-          if (!isNewStatePositionAbsolute && isLastStatePositionAbsolute) {
-            if (isPositionPreserve) options.biasX = newState.rect.x - lastState.rect.x + (newState.rect.width - lastState.rect.width) / 2;
-            if (isPositionPreserve) options.biasY = newState.rect.y - lastState.rect.y + (newState.rect.height - lastState.rect.height) / 2;
-            if (isScalePreserve) options.biasWidth = newState.rect.width / lastState.rect.width;
-            if (isScalePreserve) options.biasHeight = newState.rect.height / lastState.rect.height;
-          }
-          lastState.rect = DOMRect.fromRect(rect);
-
-          animate(newState, lastState, options)?.addEventListener('finish', () => {
-            childElement.remove();
-          });
-        }
+        });
       });
-    });
+    }
 
     setTimeout(() => { // HACK: nextFrame
       runWithOwner(owner, () => {
