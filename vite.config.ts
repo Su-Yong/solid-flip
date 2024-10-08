@@ -21,7 +21,7 @@ const config = defineConfig({
         },
       },
     },
-    minify: 'terser',
+    minify: false,
   },
   plugins: [
     solid(),

@@ -21,9 +21,6 @@ importers:
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
-      terser:
-        specifier: 5.31.6
-        version: 5.31.6
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -2310,6 +2307,7 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
+    optional: true
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
 
@@ -2744,7 +2742,8 @@ snapshots:
       node-releases: 2.0.18
       update-browserslist-db: 1.1.0(browserslist@4.23.3)
 
-  buffer-from@1.1.2: {}
+  buffer-from@1.1.2:
+    optional: true
 
   buffer@5.7.1:
     dependencies:
@@ -2818,7 +2817,8 @@ snapshots:
 
   color-name@1.1.4: {}
 
-  commander@2.20.3: {}
+  commander@2.20.3:
+    optional: true
 
   compare-versions@6.1.1: {}
 
@@ -3850,6 +3850,7 @@ snapshots:
     dependencies:
       buffer-from: 1.1.2
       source-map: 0.6.1
+    optional: true
 
   source-map@0.6.1: {}
 
@@ -3919,6 +3920,7 @@ snapshots:
       acorn: 8.12.1
       commander: 2.20.3
       source-map-support: 0.5.21
+    optional: true
 
   tmp@0.0.33:
     dependencies:
