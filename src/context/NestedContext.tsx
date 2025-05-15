@@ -1,16 +1,21 @@
-import { Accessor, createContext, createMemo, useContext } from 'solid-js';
+import { Accessor, createContext, useContext } from 'solid-js';
 
 import { FlipContext } from './FlipContext';
-import { DOMState } from '../state';
+import { getDeltaRect } from '../state';
 
 import type { JSX } from 'solid-js/jsx-runtime';
 
 export interface NestedFlipContextProps {
   parentId: Accessor<string>;
-  firstParentState: Accessor<DOMState | null>;
-  lastParentState: Accessor<DOMState | null>;
-  unflips: Accessor<Element[]>;
-  setUnflips: (unflips: Element[]) => void;
+
+  evaluate: () => void;
+  registerEvaluate: (fn: () => void) => void;
+
+  beforeEvaluate: () => void;
+
+  add(id: string): void;
+
+  delete(id: string): void;
 }
 
 export const NestedFlipContext = createContext<NestedFlipContextProps>();
@@ -29,50 +34,76 @@ export const NestedFlipProvider = (props: NestedFlipProviderProps) => {
     return props.children;
   }
 
-  const { getFirstState, getLastState } = context;
+  const childFlipIds = new Set<string>();
+  const {
+    getFirstState,
+    getLastState,
+    setFirstState,
+  } = context;
   const parent = useContext(NestedFlipContext);
 
-  const firstParentState = createMemo(() => {
-    const state = getFirstState(props.id);
-    if (!state) return null;
+  let once = true;
+  const childrenEvaluate: (() => void)[] = [];
+  const evaluate = () => {
+    if (!once) return;
+    once = false;
 
-    const parentState = parent?.firstParentState();
+    const parentFirst = getFirstState(props.id);
+    const parentLast = getLastState(props.id);
+    if (!parentFirst || !parentLast) return;
 
-    return {
-      ...state,
-      rect: DOMRect.fromRect({
-        x: state.rect.left + (parentState?.rect.left ?? 0),
-        y: state.rect.top + (parentState?.rect.top ?? 0),
-        width: state.rect.width,
-        height: state.rect.height,
-      }),
-    };
-  });
-  const lastParentState = createMemo(() => {
-    const state = getLastState(props.id);
-    if (!state) return null;
+    const delta = getDeltaRect(parentFirst, parentLast);
+    Array.from(childFlipIds.values()).forEach((flipId) => {
+      const first = getFirstState(flipId);
+      const last = getLastState(flipId);
+      if (!first) return;
+      if (!last) return;
 
-    const parentState = parent?.lastParentState();
-
-    return {
-      ...state,
-      rect: DOMRect.fromRect({
-        x: state.rect.left + (parentState?.rect.left ?? 0),
-        y: state.rect.top + (parentState?.rect.top ?? 0),
-        width: state.rect.width,
-        height: state.rect.height,
-      }),
-    };
-  });
+      // console.log(
+      //   'evaluate',
+      //   flipId, 'of', props.id,
+      //   '\ndelta:', delta,
+      //   '\nrect:', first.rect,
+      //   '->',
+      //   DOMRect.fromRect({
+      //     x: first.rect.left - delta.x,
+      //     y: first.rect.top - delta.y,
+      //     width: first.rect.width,
+      //     height: first.rect.height,
+      //   }),
+      //   '\nparentRect:', parentFirst.rect, parentLast.rect
+      // );
+      setFirstState(flipId, {
+        ...first,
+        rect: DOMRect.fromRect({
+          x: first.rect.left - delta.x,
+          y: first.rect.top - delta.y,
+          width: first.rect.width / delta.width,
+          height: first.rect.height / delta.height,
+        }),
+      });
+    });
+  };
 
   return (
     <NestedFlipContext.Provider
       value={{
         parentId: () => props.id,
-        firstParentState,
-        lastParentState,
-        unflips: () => props.unflips,
-        setUnflips: props.setUnflips,
+        evaluate: () => {
+          childrenEvaluate.forEach((evaluate) => evaluate());
+          childrenEvaluate.length = 0;
+
+          evaluate();
+        },
+        registerEvaluate: (fn) => {
+          childrenEvaluate.push(fn);
+        },
+        beforeEvaluate: () => {
+          once = true;
+          parent?.registerEvaluate(evaluate);
+        },
+        add: (id) => childFlipIds.add(id),
+        delete: (id) => childFlipIds.delete(id),
       }}
     >
       {props.children}

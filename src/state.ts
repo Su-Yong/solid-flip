@@ -75,3 +75,27 @@ export const captureState = (element: Element, additional: CSSStyleKeys[] = []):
     additionalProperties,
   };
 };
+
+export type DeltaRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+export const getDeltaRect = (first: DOMState, last: DOMState): DeltaRect => {
+  const deltaWidth = (first.rect.width / last.rect.width);
+  const deltaHeight = (first.rect.height / last.rect.height);
+  const safeDeltaWidth = deltaWidth === 0 ? 1 : deltaWidth;
+  const safeDeltaHeight = deltaHeight === 0 ? 1 : deltaHeight;
+  const offsetX = (first.rect.width - last.rect.width) / 2;
+  const offsetY = (first.rect.height - last.rect.height) / 2;
+  const deltaX = first.rect.left - last.rect.left + offsetX;
+  const deltaY = first.rect.top / safeDeltaHeight - last.rect.top + offsetY;
+
+  return {
+    x: deltaX,
+    y: deltaY,
+    width: safeDeltaWidth,
+    height: safeDeltaHeight,
+  };
+};

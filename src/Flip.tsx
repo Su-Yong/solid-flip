@@ -140,31 +140,18 @@ export const Flip = (props: FlipProps) => {
     biasWidth = 1,
     biasHeight = 1,
   } = {}) => {
-    const firstParentState = nested?.firstParentState();
-    const lastParentState = nested?.lastParentState();
-
-    let parentDeltaX = 0;
-    let parentDeltaY = 0;
-    let parentDeltaWidth = 1;
-    let parentDeltaHeight = 1;
-    if (lastParentState && firstParentState) {
-      const parentOffsetX = (firstParentState.rect.width - lastParentState.rect.width) / 2;
-      const parentOffsetY = (firstParentState.rect.height - lastParentState.rect.height) / 2;
-      parentDeltaX = firstParentState.rect.left - lastParentState.rect.left + parentOffsetX;
-      parentDeltaY = firstParentState.rect.top - lastParentState.rect.top + parentOffsetY;
-      parentDeltaWidth = firstParentState.rect.width / lastParentState.rect.width;
-      parentDeltaHeight = firstParentState.rect.height / lastParentState.rect.height;
-    }
-
     const offsetX = (firstState.rect.width - lastState.rect.width) / 2;
     const offsetY = (firstState.rect.height - lastState.rect.height) / 2;
 
-    const deltaX = -1 * parentDeltaX + firstState.rect.left - lastState.rect.left + offsetX;
-    const deltaY = -1 * parentDeltaY + firstState.rect.top - lastState.rect.top + offsetY;
-    const deltaWidth = (firstState.rect.width / lastState.rect.width) / parentDeltaWidth;
-    const deltaHeight = (firstState.rect.height / lastState.rect.height) / parentDeltaHeight;
-    const safeDeltaWidth = (deltaWidth === 0) ? 1 : deltaWidth;
+    const deltaX = firstState.rect.left - lastState.rect.left + offsetX;
+    const deltaY = firstState.rect.top - lastState.rect.top + offsetY;
+    const deltaWidth = (firstState.rect.width / lastState.rect.width);
+    const deltaHeight = (firstState.rect.height / lastState.rect.height);
+    const safeDeltaWidth = deltaWidth === 0 ? 1 : deltaWidth;
     const safeDeltaHeight = deltaHeight === 0 ? 1 : deltaHeight;
+
+    // console.log(`---\nanimate(${local.id})\ntranslate: ${deltaX}px ${deltaY}px\nscale: ${deltaWidth} ${deltaHeight}\noffset: ${offsetX}px ${offsetY}px\n---`);
+    // console.log('state', { firstState, lastState });
 
     const unflipStates = unflips().map((it) => captureState(it, properties()));
 
@@ -225,8 +212,8 @@ export const Flip = (props: FlipProps) => {
 
         const scaleX = 1 / parentScaleX;
         const scaleY = 1 / parentScaleY;
-        const offsetX = firstUnflipState.rect.width * (scaleX - 1) / 2 + x * (scaleX - 1);
-        const offsetY = firstUnflipState.rect.height * (scaleY - 1) / 2 + y * (scaleY - 1);
+        const offsetX = (firstUnflipState.rect.width * (scaleX - 1) / 2 + x) * (scaleX - 1);
+        const offsetY = (firstUnflipState.rect.height * (scaleY - 1) / 2 + y) * (scaleY - 1);
 
         target.style.setProperty('translate', `${offsetX}px ${offsetY}px`);
         target.style.setProperty('scale', `${scaleX} ${scaleY}`);
@@ -268,6 +255,7 @@ export const Flip = (props: FlipProps) => {
   };
 
   const flip = () => {
+    // console.log(`run FLIP (${local.id})`);
     if (!local.enabled) return;
 
     const childElement = child();
@@ -281,16 +269,26 @@ export const Flip = (props: FlipProps) => {
       childElement.classList.remove(enterClassName);
 
       setFirstState(local.id, firstState);
+      // console.log(`capture FIRST (${local.id})`);
     }
 
     if (firstState) {
       animation?.cancel();
       animation = null;
+
       const lastState = captureState(childElement, properties());
       setLastState(local.id, lastState);
+      // console.log(`capture LAST (${local.id})`);
 
-      requestAnimationFrame(() => {
-        animate(firstState, lastState);
+      nested?.beforeEvaluate();
+      queueMicrotask(() => {
+        // console.log(`evaluate (${local.id})`);
+        nested?.evaluate();
+
+        requestAnimationFrame(() => {
+          const first = getFirstState(local.id) ?? firstState;
+          animate(first, lastState);
+        });
       });
     } else {
       recordFirstState(local.id, childElement, properties());
@@ -298,10 +296,12 @@ export const Flip = (props: FlipProps) => {
   };
 
   onMount(() => {
+    nested?.add(local.id);
+
     const childElement = child();
     if (!childElement) return;
-
     if (!childElement.parentElement) return;
+
     flip();
   });
 
@@ -310,6 +310,7 @@ export const Flip = (props: FlipProps) => {
     if (!childElement) return;
 
     recordFirstState(local.id, childElement, properties());
+    // console.log(`capture FIRST (${local.id})`);
   }, { defer: true }));
 
   createRenderEffect(on(() => local.id, () => {
@@ -331,12 +332,15 @@ export const Flip = (props: FlipProps) => {
   }
 
   onCleanup(() => {
+    nested?.delete(local.id);
+
     const childElement = child();
     if (!childElement) return;
 
     detach(local.id);
     const newState = captureState(childElement, properties());
     setFirstState(local.id, newState);
+    // console.log(`capture FIRST (${local.id}): cleanup`);
 
     const owner = getOwner();
     const exitClassName = exitClass();
