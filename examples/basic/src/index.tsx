@@ -4,7 +4,7 @@ import { render } from 'solid-js/web';
 import { App } from './App';
 
 import './index.css';
-import { FlipProvider } from '../../../';
+import { FlipProvider } from '../../../src';
 
 const root = document.getElementById('root');
 

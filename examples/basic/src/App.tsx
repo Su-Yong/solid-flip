@@ -1,6 +1,6 @@
 import { createSignal, For, JSX, Show } from 'solid-js';
 
-import { Flip, Unflip } from '../../../';
+import { Flip } from '../../../src';
 
 import './App.css';
 
@@ -10,29 +10,105 @@ const shuffle = <T, >(array: T[]): T[] => [...array].map((value) => ({ value, so
 
 export const App = () => {
   const [flip1, setFlip1] = createSignal(false);
-  const [flip2, setFlip2] = createSignal(false);
   const [flip3, setFlip3] = createSignal(false);
   const [flip4, setFlip4] = createSignal(false);
   const [flip5, setFlip5] = createSignal([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-  const [flip6, setFlip6] = createSignal<{
+
+  type Item = {
     id: number;
-    items: number[];
-  }[]>([
-    { id: 1, items: [1, 2, 3, 4, 5] },
-    { id: 2, items: [6, 7, 8, 9, 10] },
-    { id: 3, items: [11, 12, 13, 14, 15] },
-    { id: 4, items: [16, 17, 18, 19, 20] },
-    { id: 5, items: [21, 22, 23, 24, 25] },
-    { id: 6, items: [26, 27, 28, 29, 30] },
+    children?: Item[];
+  }
+  const [flip6, setFlip6] = createSignal<Item[]>([
+    // {
+    //   id: 1,
+    //   children: [
+    //     { id: 1, children: [] },
+    //     { id: 2, children: [] },
+    //     { id: 3, children: [] },
+    //   ],
+    // },
+    {
+      id: 2,
+      children: [
+        { id: 4, children: [] },
+        {
+          id: 5,
+          children: [
+            { id: 5.1, children: [] },
+            { id: 5.2, children: [] },
+            { id: 5.3, children: [] },
+          ],
+        },
+        {
+          id: 6,
+          children: [
+            { id: 6.1, children: [] },
+            { id: 6.2, children: [] },
+            { id: 6.3, children: [] },
+          ],
+        },
+      ],
+    },
+    // {
+    //   id: 3,
+    //   children: [
+    //     {
+    //       id: 7,
+    //       children: [
+    //         { id: 7.1, children: [] },
+    //         { id: 7.2, children: [] },
+    //         { id: 7.3, children: [] },
+    //       ],
+    //     },
+    //     { id: 8, children: [] },
+    //     { id: 9, children: [] },
+    //   ],
+    // },
+    {
+      id: 4,
+      children: [
+        { id: 10, children: [] },
+        {
+          id: 11,
+          children: [
+            { id: 11.1, children: [] },
+            { id: 11.2, children: [] },
+            { id: 11.3, children: [] },
+          ],
+        },
+        { id: 12, children: [] },
+      ],
+    },
+    {
+      id: 5,
+      children: [
+        { id: 13, children: [] },
+        { id: 14, children: [] },
+        {
+          id: 15,
+          children: [
+            { id: 15.1, children: [] },
+            { id: 15.2, children: [] },
+            { id: 15.3, children: [] },
+          ],
+        },
+      ],
+    }
   ]);
-  const [flip7, setFlip7] = createSignal(1);
 
   const onRemove5 = () => setFlip5((prev) => prev.filter((it) => it !== prev.length));
   const onShuffle5 = () => setFlip5(shuffle(flip5()));
   const onAdd5 = () => setFlip5((prev) => [...prev, prev.length + 1]);
-  const onShuffle6 = () => setFlip6(shuffle(flip6().map((group) => ({ ...group, items: shuffle(group.items) }))));
-  const onRemove7 = () => setFlip7((prev) => Math.max(1, prev - 1));
-  const onAdd7 = () => setFlip7((prev) => Math.min(3, prev + 1));
+  const onShuffle6 = () => {
+    const shuffleItem = (item: Item) => {
+      const newItem = { ...item };
+      if (item.children) newItem.children = shuffle(item.children.map(shuffleItem));
+
+      return newItem;
+    }
+
+    setFlip6(shuffle(flip6().map(shuffleItem)));
+  };
 
   return (
     <div class={'app'}>
@@ -54,19 +130,6 @@ export const App = () => {
             </div>
           </Flip>
         </Show>
-      </section>
-
-      <section>
-        <h1>Flip with <code>Property(with)</code> + Unflip</h1>
-        <Flip id={'flip2'} with={flip2()}>
-          <div class={flip2() ? 'card blue fullscreen' : 'card red'} onClick={() => setFlip2(!flip2())}>
-            <Unflip>
-              <div>
-                {flip2() ? 'Click Again!' : 'Click!'}
-              </div>
-            </Unflip>
-          </div>
-        </Flip>
       </section>
 
       <section>
@@ -136,12 +199,21 @@ export const App = () => {
             {(item) => (
               <Flip id={`flip6-group-${item.id}`} with={flip6()}>
                 <div class={'card grid'}>
-                  <For each={item.items}>
+                  <For each={item.children}>
                     {(subItem) => (
-                      <Flip id={`flip6-${subItem}`} with={flip6()}>
-                        <Card>
-                          {subItem}
-                        </Card>
+                      <Flip id={`flip6-${subItem.id}`} with={flip6()}>
+                        <div class={'card grid'}>
+                          {subItem.id}
+                          <For each={subItem.children}>
+                            {(subSubItem) => (
+                              <Flip id={`flip6-${subSubItem.id}`} with={flip6()}>
+                                <Card>
+                                  {subSubItem.id}
+                                </Card>
+                              </Flip>
+                            )}
+                          </For>
+                        </div>
                       </Flip>
                     )}
                   </For>
@@ -150,39 +222,6 @@ export const App = () => {
             )}
           </For>
         </div>
-      </section>
-
-      <section>
-        <h1>Unflip</h1>
-        <div class={'header'}>
-          <button onClick={onRemove7}>
-            -
-          </button>
-          {flip7()}
-          <button onClick={onAdd7}>
-            +
-          </button>
-        </div>
-
-        <Flip id={'flip7'} with={flip7()}>
-          <div
-            class={'card'}
-            style={{
-              width: flip7() === 2 ? '500px' : '250px',
-              height: flip7() === 3 ? '500px' : '250px'
-            }}
-          >
-            <Unflip>
-              <div class={'card red'}>
-                Inner Component 1
-              </div>
-              <div class={'card blue'}>
-                Inner Component 2
-              </div>
-            </Unflip>
-          </div>
-        </Flip>
-
       </section>
     </div>
   );

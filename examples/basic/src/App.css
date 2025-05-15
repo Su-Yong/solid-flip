@@ -57,10 +57,20 @@ h1 {
   gap: 16px;
 }
 
+.grid > *:nth-child(1) {
+  align-self: flex-start;
+}
+.grid > *:nth-child(2) {
+  align-self: center;
+}
+.grid > *:nth-child(3) {
+  align-self: flex-end;
+}
+
 .card {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: flex-start;
   gap: 8px;
 
